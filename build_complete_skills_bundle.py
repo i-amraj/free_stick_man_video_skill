@@ -72,10 +72,14 @@ builtin_src = Path(r"C:\Users\iamra\.gemini\antigravity\builtin\skills")
 if builtin_src.exists():
     shutil.copytree(builtin_src, dest_builtin, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git*"))
 
-# Also copy AGENTS.md, GEMINI.md, and agent configs into standard agent root dirs
+# Also copy AGENTS.md, GEMINI.md, HARNESS.md, and harness.py into standard agent root dirs
 print("\n--- PACKAGING AGENT WORKSPACE INSTRUCTIONS ---")
 shutil.copy2(ROOT / "AGENTS.md", STAGE / "AGENTS.md")
 shutil.copy2(ROOT / "GEMINI.md", STAGE / "GEMINI.md")
+shutil.copy2(ROOT / "HARNESS.md", STAGE / "HARNESS.md")
+shutil.copy2(ROOT / "harness.py", STAGE / "harness.py")
+if (ROOT / "harness").exists():
+    shutil.copytree(ROOT / "harness", STAGE / "harness", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
 
 # Also package for Claude Code (.claude), Cursor (.cursor), and Windsurf
 claude_dir = STAGE / ".claude"

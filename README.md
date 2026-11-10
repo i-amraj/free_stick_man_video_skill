@@ -7,6 +7,25 @@ Designed for AI Coding Agents (**Antigravity, Claude Code, Cursor, Windsurf, Roo
 
 ---
 
+## ⚡ Automated Production Harness (`HARNESS.md`)
+
+This repository includes a fully automated **Production Harness** (`harness.py` & `harness/`) that guides any AI agent or developer through creating a complete, high-retention 2D stickman video from raw script to broadcast-ready MP4.
+
+```bash
+# 1. Run Automated Harness Verification (Tests all 5 gates)
+python harness.py --test
+
+# 2. Produce a complete video from any script in one command
+python harness.py --script "Detective Gary investigates a dark medieval alley. A sneaky thief jumps from the shadows with a stolen gold coin! Gary points his magnifying glass and shocks the thief." --output my_video.mp4
+
+# 3. Run reference 20s dialogue demo
+python harness.py --demo
+```
+
+For complete step-by-step specifications, read [`HARNESS.md`](./HARNESS.md).
+
+---
+
 ## 🚀 Key Features
 
 - 🦴 **Forward Kinematics (FK) Stickman Rig (`rig.js`)**:
