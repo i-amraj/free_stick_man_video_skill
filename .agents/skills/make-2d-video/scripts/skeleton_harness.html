@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>GrowKaz Skeleton Harness — Full Bone Viewer v2.0</title>
+  <script src="../scene/lib/gsap.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #030712; color: #f8fafc;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex; height: 100vh; overflow: hidden;
+    }
+    /* ── LEFT PANEL: Bone Tree ─────────────────── */
+    #panel-bones {
+      width: 300px; min-width: 300px;
+      background: #0a101f;
+      border-right: 1px solid rgba(56,189,248,0.2);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    #panel-bones h2 {
+      padding: 18px 20px 10px;
+      font-size: 14px; font-weight: 700;
+      color: #38bdf8; letter-spacing: 1.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(56,189,248,0.15);
+    }
+    #bone-tree { flex: 1; overflow-y: auto; padding: 10px 0; }
+    .bone-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 16px 7px calc(16px + var(--depth) * 14px);
+      cursor: pointer; border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .bone-item:hover { background: rgba(56,189,248,0.08); border-left-color: #38bdf8; }
+    .bone-item.selected { background: rgba(56,189,248,0.15); border-left-color: #38bdf8; }
+    .bone-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #334155; flex-shrink: 0;
+    }
+    .bone-item.selected .bone-dot, .bone-item:hover .bone-dot { background: #38bdf8; }
+    .bone-name { font-size: 13px; color: #cbd5e1; font-family: monospace; }
+    .bone-item.selected .bone-name, .bone-item:hover .bone-name { color: #f8fafc; }
+    .bone-role { font-size: 11px; color: #475569; margin-top: 2px; }
+    .bone-category {
+      padding: 10px 16px 4px;
+      font-size: 10px; font-weight: 700;
+      color: #64748b; letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    /* ── CENTRE: Preview Canvas ────────────────── */
+    #panel-preview {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      background: radial-gradient(circle at 50% 60%, #060f1e 0%, #020617 70%);
+    }
+    #preview-label {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3);
+      border-radius: 20px; padding: 6px 20px;
+      font-size: 13px; color: #38bdf8; letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    #skeleton-svg {
+      width: 420px; height: 740px;
+      overflow: visible;
+    }
+    /* Bone highlight overlay */
+    .bone-highlight { filter: drop-shadow(0 0 6px #38bdf8); }
+    /* ── RIGHT PANEL: Poses + Info ─────────────── */
+    #panel-right {
+      width: 300px; min-width: 300px;
+      background: #0a101f;
+      border-left: 1px solid rgba(56,189,248,0.2);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    #panel-right h2 {
+      padding: 18px 20px 10px;
+      font-size: 14px; font-weight: 700;
+      color: #38bdf8; letter-spacing: 1.5px; text-transform: uppercase;
+      border-bottom: 1px solid rgba(56,189,248,0.15);
+    }
+    .pose-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; padding: 14px;
+    }
+    .pose-btn {
+      background: #111827; border: 1px solid #334155;
+      border-radius: 10px; padding: 10px 8px;
+      cursor: pointer; text-align: center;
+      font-size: 12px; color: #94a3b8; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .pose-btn:hover, .pose-btn.active {
+      background: rgba(56,189,248,0.1);
+      border-color: #38bdf8; color: #f8fafc;
+    }
+    .pose-emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+    #bone-info {
+      flex: 1; overflow-y: auto;
+      padding: 14px;
+    }
+    .info-card {
+      background: #0f172a;
+      border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    }
+    .info-card h3 { font-size: 13px; color: #38bdf8; margin-bottom: 8px; font-family: monospace; }
+    .info-card p  { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+    .attr-row { display: flex; justify-content: space-between; margin: 4px 0; }
+    .attr-key { font-size: 11px; color: #64748b; font-family: monospace; }
+    .attr-val { font-size: 11px; color: #38bdf8; font-family: monospace; }
+    /* Controls bar */
+    #controls-bar {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px;
+    }
+    .ctrl-btn {
+      background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3);
+      border-radius: 20px; padding: 8px 18px;
+      font-size: 12px; font-weight: 600; color: #38bdf8;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .ctrl-btn:hover { background: rgba(56,189,248,0.15); }
+    /* Debug overlay bone labels */
+    .bone-label { font-size: 9px; fill: rgba(56,189,248,0.6); font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<!-- ── LEFT: Bone Tree ───────────────────────── -->
+<div id="panel-bones">
+  <h2>🦴 Bone Hierarchy (36 Bones)</h2>
+  <div id="bone-tree"></div>
+</div>
+
+<!-- ── CENTRE: Canvas ───────────────────────── -->
+<div id="panel-preview">
+  <div id="preview-label">GrowKaz Full Skeleton Harness v2.0 — Click any bone to inspect</div>
+
+  <svg id="skeleton-svg" viewBox="-150 -300 300 620">
+    <!-- Grid guide lines -->
+    <line x1="-150" y1="0" x2="150" y2="0" stroke="#1e293b" stroke-width="0.5"/>
+    <line x1="0" y1="-300" x2="0" y2="320" stroke="#1e293b" stroke-width="0.5"/>
+    <!-- Character will be injected here by JS -->
+  </svg>
+
+  <div id="controls-bar">
+    <button class="ctrl-btn" onclick="toggleBreath()">🫁 Breathing</button>
+    <button class="ctrl-btn" onclick="toggleWalk()">🚶 Walk Cycle</button>
+    <button class="ctrl-btn" onclick="toggleLabels()">🏷️ Labels</button>
+    <button class="ctrl-btn" onclick="resetPose()">↺ Reset</button>
+  </div>
+</div>
+
+<!-- ── RIGHT: Pose Buttons + Info ───────────── -->
+<div id="panel-right">
+  <h2>🎭 Pose Library</h2>
+  <div class="pose-grid" id="pose-grid"></div>
+  <div id="bone-info">
+    <div class="info-card">
+      <h3>📋 How to Use</h3>
+      <p>• Click any bone in the left tree to highlight and inspect it.<br>
+         • Click a pose button to animate the skeleton.<br>
+         • Use the breathing / walk controls for loops.<br>
+         • All 36 bones are individually addressable via <code style="color:#38bdf8">rig.getBone('name')</code>.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// Inline GKStickmanSkeleton (self-contained for this harness)
+// In production: import from '../scripts/stickman_skeleton.js'
+// ─────────────────────────────────────────────────────────────
+class GKStickmanSkeleton {
+  constructor(svgId, options = {}) {
+    this.svg = document.getElementById(svgId);
+    this.cfg = {
+      id:          options.id          || 'gk-stickman',
+      x:           options.x           || 0,
+      y:           options.y           || 0,
+      scale:       options.scale       || 1.0,
+      color:       options.color       || '#f8fafc',
+      sw:          options.strokeWidth || 7,
+      fill:        options.fill        || '#090e1a',
+      eyeColor:    options.eyeColor    || '#38bdf8',
+    };
+    this.bones = {};
+    this.root  = null;
+    this._build();
+  }
+
+  _build() {
+    const { id, x, y, scale, color, sw, fill, eyeColor } = this.cfg;
+    const ns = 'http://www.w3.org/2000/svg';
+
+    const root = document.createElementNS(ns, 'g');
+    root.setAttribute('id', id);
+    root.setAttribute('data-gk-rig', 'v2');
+    root.setAttribute('transform', `translate(${x},${y}) scale(${scale})`);
+    this.root = root;
+
+    const el = (tag, attrs, boneName) => {
+      const e = document.createElementNS(ns, tag);
+      for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+      if (boneName) {
+        e.setAttribute('data-bone', boneName);
+        this.bones[boneName] = e;
+      }
+      return e;
+    };
+
+    // pelvis
+    const pelvis = el('g', { id:`${id}-pelvis`, 'data-bone':'pelvis' }, 'pelvis');
+    root.appendChild(pelvis);
+
+    // spine chain
+    pelvis.appendChild(el('line',{ id:`${id}-spine-lower`,'data-bone':'spine_lower', x1:0,y1:60,x2:0,y2:10, stroke:color,'stroke-width':sw+1,'stroke-linecap':'round' },'spine_lower'));
+    pelvis.appendChild(el('line',{ id:`${id}-spine-mid`,  'data-bone':'spine_mid',   x1:0,y1:10,x2:0,y2:-50, stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'spine_mid'));
+    pelvis.appendChild(el('line',{ id:`${id}-spine-upper`,'data-bone':'spine_upper', x1:0,y1:-50,x2:0,y2:-115, stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'spine_upper'));
+    pelvis.appendChild(el('line',{ id:`${id}-neck`,        'data-bone':'neck',         x1:0,y1:-115,x2:0,y2:-128, stroke:color,'stroke-width':sw-1,'stroke-linecap':'round' },'neck'));
+
+    // head group
+    const hg = el('g',{ id:`${id}-head-group`,'data-bone':'head' },'head');
+    hg.appendChild(el('circle',{ id:`${id}-head-circle`, cx:0,cy:-165,r:40, fill:fill,stroke:color,'stroke-width':sw }));
+    hg.appendChild(el('circle',{ id:`${id}-eye-l`,'data-bone':'eye_l', cx:-13,cy:-168,r:5, fill:eyeColor },'eye_l'));
+    hg.appendChild(el('circle',{ id:`${id}-eye-r`,'data-bone':'eye_r`, cx:13,cy:-168,r:5, fill:eyeColor },'eye_r'));
+    hg.appendChild(el('path',  { id:`${id}-eyebrow-l`,'data-bone':'eyebrow_l`, d:'M -20 -178 L -6 -180', stroke:color,'stroke-width':3,fill:'none','stroke-linecap':'round' },'eyebrow_l'));
+    hg.appendChild(el('path',  { id:`${id}-eyebrow-r`,'data-bone':'eyebrow_r`, d:'M 6 -180 L 20 -178',  stroke:color,'stroke-width':3,fill:'none','stroke-linecap':'round' },'eyebrow_r'));
+    hg.appendChild(el('path',  { id:`${id}-mouth`,     'data-bone':'mouth',      d:'M -10 -150 Q 0 -144 10 -150', stroke:color,'stroke-width':4,fill:'none','stroke-linecap':'round' },'mouth'));
+    hg.appendChild(el('circle',{ id:`${id}-sweat`,     'data-bone':'sweat',      cx:35,cy:-180,r:4.5, fill:eyeColor,opacity:0 },'sweat'));
+    pelvis.appendChild(hg);
+
+    // shoulders
+    pelvis.appendChild(el('line',{ id:`${id}-shoulder-l`,'data-bone':'shoulder_l', x1:0,y1:-100,x2:-28,y2:-105, stroke:color,'stroke-width':sw-1,'stroke-linecap':'round' },'shoulder_l'));
+    pelvis.appendChild(el('line',{ id:`${id}-shoulder-r`,'data-bone':'shoulder_r`, x1:0,y1:-100,x2:28,y2:-105,  stroke:color,'stroke-width':sw-1,'stroke-linecap':'round' },'shoulder_r'));
+
+    // left arm
+    pelvis.appendChild(el('line',{ id:`${id}-upperarm-l`,'data-bone':'upperarm_l`, x1:-28,y1:-105,x2:-60,y2:-60, stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'upperarm_l'));
+    pelvis.appendChild(el('line',{ id:`${id}-forearm-l`, 'data-bone':'forearm_l`,  x1:-60,y1:-60,x2:-85,y2:-15,  stroke:color,'stroke-width':sw-1,'stroke-linecap':'round' },'forearm_l'));
+    const hL = el('g',{ id:`${id}-hand-l`,'data-bone':'hand_l' },'hand_l');
+    hL.appendChild(el('circle',{ cx:-85,cy:-15,r:7, fill:fill,stroke:color,'stroke-width':sw-2 }));
+    pelvis.appendChild(hL);
+    pelvis.appendChild(el('line',{ id:`${id}-thumb-l`,'data-bone':'thumb_l`, x1:-85,y1:-15,x2:-96,y2:-24, stroke:color,'stroke-width':3,'stroke-linecap':'round' },'thumb_l'));
+    pelvis.appendChild(el('line',{ id:`${id}-index-l`,'data-bone':'index_l`, x1:-85,y1:-15,x2:-92,y2:-5,  stroke:color,'stroke-width':3,'stroke-linecap':'round' },'index_l'));
+    pelvis.appendChild(el('line',{ id:`${id}-pinky-l`,'data-bone':'pinky_l`, x1:-85,y1:-15,x2:-92,y2:-26, stroke:color,'stroke-width':3,'stroke-linecap':'round' },'pinky_l'));
+
+    // right arm
+    pelvis.appendChild(el('line',{ id:`${id}-upperarm-r`,'data-bone':'upperarm_r`, x1:28,y1:-105,x2:60,y2:-60, stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'upperarm_r'));
+    pelvis.appendChild(el('line',{ id:`${id}-forearm-r`, 'data-bone':'forearm_r`,  x1:60,y1:-60,x2:85,y2:-15,  stroke:color,'stroke-width':sw-1,'stroke-linecap':'round' },'forearm_r'));
+    const hR = el('g',{ id:`${id}-hand-r`,'data-bone':'hand_r' },'hand_r');
+    hR.appendChild(el('circle',{ cx:85,cy:-15,r:7, fill:fill,stroke:color,'stroke-width':sw-2 }));
+    pelvis.appendChild(hR);
+    pelvis.appendChild(el('line',{ id:`${id}-thumb-r`,'data-bone':'thumb_r`, x1:85,y1:-15,x2:96,y2:-24, stroke:color,'stroke-width':3,'stroke-linecap':'round' },'thumb_r'));
+    pelvis.appendChild(el('line',{ id:`${id}-index-r`,'data-bone':'index_r`, x1:85,y1:-15,x2:92,y2:-5,  stroke:color,'stroke-width':3,'stroke-linecap':'round' },'index_r'));
+    pelvis.appendChild(el('line',{ id:`${id}-pinky-r`,'data-bone':'pinky_r`, x1:85,y1:-15,x2:92,y2:-26, stroke:color,'stroke-width':3,'stroke-linecap':'round' },'pinky_r'));
+
+    // left leg
+    pelvis.appendChild(el('line',{ id:`${id}-hip-l`,  'data-bone':'hip_l`,   x1:0,y1:60,x2:-18,y2:72,    stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'hip_l'));
+    pelvis.appendChild(el('line',{ id:`${id}-thigh-l`,'data-bone':'thigh_l`, x1:-18,y1:72,x2:-40,y2:160,  stroke:color,'stroke-width':sw+1,'stroke-linecap':'round' },'thigh_l'));
+    pelvis.appendChild(el('line',{ id:`${id}-shin-l`, 'data-bone':'shin_l`,  x1:-40,y1:160,x2:-48,y2:255, stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'shin_l'));
+    pelvis.appendChild(el('path',{ id:`${id}-foot-l`, 'data-bone':'foot_l`,  d:'M -48 255 L -48 265 L -72 265', stroke:color,'stroke-width':sw,fill:'none','stroke-linecap':'round','stroke-linejoin':'round' },'foot_l'));
+    pelvis.appendChild(el('line',{ id:`${id}-toe-l`,  'data-bone':'toe_l`,   x1:-72,y1:265,x2:-84,y2:265, stroke:color,'stroke-width':sw-2,'stroke-linecap':'round' },'toe_l'));
+
+    // right leg
+    pelvis.appendChild(el('line',{ id:`${id}-hip-r`,  'data-bone':'hip_r`,   x1:0,y1:60,x2:18,y2:72,     stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'hip_r'));
+    pelvis.appendChild(el('line',{ id:`${id}-thigh-r`,'data-bone':'thigh_r`, x1:18,y1:72,x2:40,y2:160,   stroke:color,'stroke-width':sw+1,'stroke-linecap':'round' },'thigh_r'));
+    pelvis.appendChild(el('line',{ id:`${id}-shin-r`, 'data-bone':'shin_r`,  x1:40,y1:160,x2:48,y2:255,  stroke:color,'stroke-width':sw,'stroke-linecap':'round' },'shin_r'));
+    pelvis.appendChild(el('path',{ id:`${id}-foot-r`, 'data-bone':'foot_r`,  d:'M 48 255 L 48 265 L 72 265', stroke:color,'stroke-width':sw,fill:'none','stroke-linecap':'round','stroke-linejoin':'round' },'foot_r'));
+    pelvis.appendChild(el('line',{ id:`${id}-toe-r`,  'data-bone':'toe_r`,   x1:72,y1:265,x2:84,y2:265,  stroke:color,'stroke-width':sw-2,'stroke-linecap':'round' },'toe_r'));
+
+    this.svg.appendChild(root);
+  }
+
+  getBone(n) { return this.bones[n] || null; }
+  setBone(n, attrs) {
+    const b = this.getBone(n); if(!b) return;
+    for(const[k,v] of Object.entries(attrs)) b.setAttribute(k,v);
+  }
+  getBoneNames() { return Object.keys(this.bones); }
+
+  animateBones(boneMap, duration=0.45, ease='power2.inOut') {
+    if(!window.gsap) return;
+    const tl = gsap.timeline();
+    for(const[boneName,attrs] of Object.entries(boneMap)) {
+      const b = this.getBone(boneName); if(!b) continue;
+      tl.to(b, { attr:attrs, duration, ease }, 0);
+    }
+    return tl;
+  }
+
+  animate(poseName, duration=0.5, ease='power2.inOut') {
+    const p = GKStickmanSkeleton.POSES[poseName];
+    if(!p) return;
+    return this.animateBones(p, duration, ease);
+  }
+
+  startBreathing() {
+    this._breathTl = gsap.timeline({ repeat:-1, yoyo:true });
+    this._breathTl.to(this.bones['head'], { y:3, duration:1.4, ease:'sine.inOut' }, 0);
+    this._breathTl.to(this.bones['shoulder_l'], { attr:{ y1:-97, y2:-103 }, duration:1.4, ease:'sine.inOut' }, 0);
+    this._breathTl.to(this.bones['shoulder_r'], { attr:{ y1:-97, y2:-103 }, duration:1.4, ease:'sine.inOut' }, 0);
+    return this._breathTl;
+  }
+  stopBreathing() { if(this._breathTl) this._breathTl.kill(); }
+
+  startWalk(speed=0.55) {
+    this._walkTl = gsap.timeline({ repeat:-1 });
+    // phase A
+    this._walkTl.to(this.bones['thigh_l'],   { attr:{ x2:-20,y2:155 }, duration:speed, ease:'sine.inOut' }, 0);
+    this._walkTl.to(this.bones['shin_l'],    { attr:{ x1:-20,y1:155,x2:-15,y2:255 }, duration:speed, ease:'sine.inOut' }, 0);
+    this._walkTl.to(this.bones['thigh_r'],   { attr:{ x2:55,y2:165 }, duration:speed, ease:'sine.inOut' }, 0);
+    this._walkTl.to(this.bones['shin_r'],    { attr:{ x1:55,y1:165,x2:65,y2:255 }, duration:speed, ease:'sine.inOut' }, 0);
+    this._walkTl.to(this.bones['upperarm_l'],{ attr:{ x2:-72,y2:-55 }, duration:speed, ease:'sine.inOut' }, 0);
+    this._walkTl.to(this.bones['forearm_l'], { attr:{ x1:-72,y1:-55,x2:-95,y2:-20 }, duration:speed, ease:'sine.inOut' }, 0);
+    this._walkTl.to(this.bones['upperarm_r'],{ attr:{ x2:45,y2:-65 }, duration:speed, ease:'sine.inOut' }, 0);
+    this._walkTl.to(this.bones['forearm_r'], { attr:{ x1:45,y1:-65,x2:60,y2:-15 }, duration:speed, ease:'sine.inOut' }, 0);
+    // phase B
+    this._walkTl.to(this.bones['thigh_r'],   { attr:{ x2:20,y2:155 }, duration:speed, ease:'sine.inOut' });
+    this._walkTl.to(this.bones['shin_r'],    { attr:{ x1:20,y1:155,x2:15,y2:255 }, duration:speed, ease:'sine.inOut' }, '<');
+    this._walkTl.to(this.bones['thigh_l'],   { attr:{ x2:-55,y2:165 }, duration:speed, ease:'sine.inOut' }, '<');
+    this._walkTl.to(this.bones['shin_l'],    { attr:{ x1:-55,y1:165,x2:-65,y2:255 }, duration:speed, ease:'sine.inOut' }, '<');
+    this._walkTl.to(this.bones['upperarm_r'],{ attr:{ x2:72,y2:-55 }, duration:speed, ease:'sine.inOut' }, '<');
+    this._walkTl.to(this.bones['forearm_r'], { attr:{ x1:72,y1:-55,x2:95,y2:-20 }, duration:speed, ease:'sine.inOut' }, '<');
+    this._walkTl.to(this.bones['upperarm_l'],{ attr:{ x2:-45,y2:-65 }, duration:speed, ease:'sine.inOut' }, '<');
+    this._walkTl.to(this.bones['forearm_l'], { attr:{ x1:-45,y1:-65,x2:-60,y2:-15 }, duration:speed, ease:'sine.inOut' }, '<');
+    return this._walkTl;
+  }
+  stopWalk() { if(this._walkTl) this._walkTl.kill(); this.animate('idle',0.3); }
+
+  static get POSES() { return {
+    idle:          { spine_lower:{x1:0,y1:60,x2:0,y2:10},spine_mid:{x1:0,y1:10,x2:0,y2:-50},spine_upper:{x1:0,y1:-50,x2:0,y2:-115},neck:{x1:0,y1:-115,x2:0,y2:-128},shoulder_l:{x1:0,y1:-100,x2:-28,y2:-105},shoulder_r:{x1:0,y1:-100,x2:28,y2:-105},upperarm_l:{x1:-28,y1:-105,x2:-60,y2:-60},forearm_l:{x1:-60,y1:-60,x2:-85,y2:-15},upperarm_r:{x1:28,y1:-105,x2:60,y2:-60},forearm_r:{x1:60,y1:-60,x2:85,y2:-15},hip_l:{x1:0,y1:60,x2:-18,y2:72},thigh_l:{x1:-18,y1:72,x2:-40,y2:160},shin_l:{x1:-40,y1:160,x2:-48,y2:255},hip_r:{x1:0,y1:60,x2:18,y2:72},thigh_r:{x1:18,y1:72,x2:40,y2:160},shin_r:{x1:40,y1:160,x2:48,y2:255},foot_l:{d:'M -48 255 L -48 265 L -72 265'},foot_r:{d:'M 48 255 L 48 265 L 72 265'},eyebrow_l:{d:'M -20 -178 L -6 -180'},eyebrow_r:{d:'M 6 -180 L 20 -178'},mouth:{d:'M -10 -150 Q 0 -144 10 -150'}},
+    phone_call:    { upperarm_r:{x1:28,y1:-105,x2:55,y2:-125},forearm_r:{x1:55,y1:-125,x2:68,y2:-155},upperarm_l:{x1:-28,y1:-105,x2:-50,y2:-55},forearm_l:{x1:-50,y1:-55,x2:-55,y2:-5},eyebrow_l:{d:'M -20 -182 L -6 -184'},eyebrow_r:{d:'M 6 -184 L 20 -182'},mouth:{d:'M -8 -150 L 8 -150'}},
+    pointing_up:   { upperarm_r:{x1:28,y1:-105,x2:65,y2:-130},forearm_r:{x1:65,y1:-130,x2:100,y2:-178},upperarm_l:{x1:-28,y1:-105,x2:-45,y2:-55},forearm_l:{x1:-45,y1:-55,x2:-55,y2:-5},eyebrow_l:{d:'M -20 -177 L -6 -179'},eyebrow_r:{d:'M 6 -179 L 20 -177'},mouth:{d:'M -12 -147 Q 0 -138 12 -147'}},
+    shocked:       { upperarm_l:{x1:-28,y1:-105,x2:-60,y2:-140},forearm_l:{x1:-60,y1:-140,x2:-40,y2:-190},upperarm_r:{x1:28,y1:-105,x2:60,y2:-140},forearm_r:{x1:60,y1:-140,x2:40,y2:-190},thigh_l:{x1:-18,y1:72,x2:-60,y2:155},shin_l:{x1:-60,y1:155,x2:-80,y2:250},thigh_r:{x1:18,y1:72,x2:60,y2:155},shin_r:{x1:60,y1:155,x2:80,y2:250},eyebrow_l:{d:'M -20 -182 L -6 -187'},eyebrow_r:{d:'M 6 -187 L 20 -182'},mouth:{d:'M -8 -148 A 7 10 0 1 0 8 -148 A 7 10 0 1 0 -8 -148'}},
+    thinking:      { upperarm_r:{x1:28,y1:-105,x2:50,y2:-65},forearm_r:{x1:50,y1:-65,x2:25,y2:-145},upperarm_l:{x1:-28,y1:-105,x2:-45,y2:-55},forearm_l:{x1:-45,y1:-55,x2:-20,y2:-50},eyebrow_l:{d:'M -20 -178 L -6 -180'},eyebrow_r:{d:'M 6 -183 L 20 -179'},mouth:{d:'M -8 -150 L 8 -152'}},
+    crouching:     { spine_upper:{x1:0,y1:-50,x2:-15,y2:-105},neck:{x1:-15,y1:-105,x2:-20,y2:-120},thigh_l:{x1:-18,y1:72,x2:-55,y2:130},shin_l:{x1:-55,y1:130,x2:-30,y2:215},foot_l:{d:'M -30 215 L -28 228 L -55 228'},thigh_r:{x1:18,y1:72,x2:55,y2:130},shin_r:{x1:55,y1:130,x2:30,y2:215},foot_r:{d:'M 30 215 L 28 228 L 55 228'},upperarm_l:{x1:-28,y1:-100,x2:-58,y2:-55},forearm_l:{x1:-58,y1:-55,x2:-78,y2:-10},upperarm_r:{x1:28,y1:-100,x2:58,y2:-55},forearm_r:{x1:58,y1:-55,x2:78,y2:-10}},
+    peephole:      { spine_upper:{x1:0,y1:-50,x2:15,y2:-112},neck:{x1:15,y1:-112,x2:22,y2:-126},upperarm_r:{x1:28,y1:-100,x2:65,y2:-90},forearm_r:{x1:65,y1:-90,x2:95,y2:-78},upperarm_l:{x1:-28,y1:-100,x2:-50,y2:-55},forearm_l:{x1:-50,y1:-55,x2:-60,y2:-5},thigh_l:{x1:-18,y1:72,x2:-32,y2:155},shin_l:{x1:-32,y1:155,x2:-38,y2:255},thigh_r:{x1:18,y1:72,x2:28,y2:160},shin_r:{x1:28,y1:160,x2:35,y2:255}},
+    foot_inspect:  { spine_upper:{x1:0,y1:-50,x2:-8,y2:-112},neck:{x1:-8,y1:-112,x2:-12,y2:-126},thigh_l:{x1:-18,y1:72,x2:-60,y2:125},shin_l:{x1:-60,y1:125,x2:-50,y2:190},foot_l:{d:'M -50 190 L -50 200 L -80 200'},thigh_r:{x1:18,y1:72,x2:40,y2:160},shin_r:{x1:40,y1:160,x2:48,y2:255},upperarm_l:{x1:-28,y1:-100,x2:-55,y2:-55},forearm_l:{x1:-55,y1:-55,x2:-70,y2:-10},upperarm_r:{x1:28,y1:-100,x2:55,y2:-55},forearm_r:{x1:55,y1:-55,x2:70,y2:-10},eyebrow_l:{d:'M -20 -180 L -6 -182'},eyebrow_r:{d:'M 6 -182 L 20 -180'},mouth:{d:'M -8 -150 Q 0 -155 8 -150'}},
+    frozen_horror: { upperarm_l:{x1:-28,y1:-105,x2:-55,y2:-65},forearm_l:{x1:-55,y1:-65,x2:-72,y2:-20},upperarm_r:{x1:28,y1:-105,x2:55,y2:-65},forearm_r:{x1:55,y1:-65,x2:72,y2:-20},thigh_l:{x1:-18,y1:72,x2:-20,y2:160},shin_l:{x1:-20,y1:160,x2:-22,y2:255},thigh_r:{x1:18,y1:72,x2:20,y2:160},shin_r:{x1:20,y1:160,x2:22,y2:255},eyebrow_l:{d:'M -20 -186 L -6 -188'},eyebrow_r:{d:'M 6 -188 L 20 -186'},mouth:{d:'M -6 -150 A 5 7 0 1 0 6 -150 A 5 7 0 1 0 -6 -150'}},
+    flinch:        { spine_upper:{x1:0,y1:-50,x2:-10,y2:-115},upperarm_l:{x1:-28,y1:-105,x2:-60,y2:-130},forearm_l:{x1:-60,y1:-130,x2:-50,y2:-170},upperarm_r:{x1:28,y1:-105,x2:40,y2:-55},forearm_r:{x1:40,y1:-55,x2:55,y2:-5},eyebrow_l:{d:'M -20 -183 L -6 -187'},eyebrow_r:{d:'M 6 -183 L 20 -187'},mouth:{d:'M -10 -150 Q 0 -145 10 -150'}},
+  };}
+}
+
+// ─── BONE INDEX / description ─────────────────────────────────
+const BONE_INDEX = {
+  pelvis:'Root anchor — parent of ALL bones. Translate to move whole body.',
+  spine_lower:'Lumbar spine (y:60→10). Controls lower-back bend.',
+  spine_mid:'Mid-thoracic spine (y:10→-50). Controls torso lean.',
+  spine_upper:'Upper-thoracic spine (y:-50→-115). Controls chest forward tilt.',
+  neck:'Cervical neck (y:-115→-128). Controls head pitch axis.',
+  head:'Skull group. Contains eyes, brows, mouth, sweat. Translate to nod.',
+  eye_l:'Left eye circle. Scale to 0.1 for wink/blink.',
+  eye_r:'Right eye circle. Scale to 0.1 for wink/blink.',
+  eyebrow_l:'Left brow — change d= path to tilt/raise for expressions.',
+  eyebrow_r:'Right brow — change d= path to tilt/raise for expressions.',
+  mouth:'Mouth path — change d= for smile/frown/open/scream.',
+  sweat:'Fear bead — set opacity=1 on horror beats.',
+  shoulder_l:'Left clavicle. Controls arm root attachment point.',
+  upperarm_l:'Left humerus (shoulder → elbow). Primary arm swing.',
+  forearm_l:'Left ulna/radius (elbow → wrist). Lower arm angle.',
+  hand_l:'Left hand palm. Translate to attach props.',
+  thumb_l:'Left thumb stub. Rotate for grip poses.',
+  index_l:'Left index finger. Extend for pointing.',
+  pinky_l:'Left pinky finger. Use for open-hand spread.',
+  shoulder_r:'Right clavicle. Controls arm root attachment point.',
+  upperarm_r:'Right humerus. Phone-hold / pointing / gestures.',
+  forearm_r:'Right ulna/radius. Controls lower arm angle.',
+  hand_r:'Right hand palm. Translate to attach phone/props.',
+  thumb_r:'Right thumb stub.',
+  index_r:'Right index finger. Pointing / accusation gesture.',
+  pinky_r:'Right pinky finger.',
+  hip_l:'Left iliac stub. Controls leg hip-socket pivot.',
+  thigh_l:'Left femur (hip → knee). Controls leg swing and kick.',
+  shin_l:'Left tibia/fibula (knee → ankle). Controls lower leg bend.',
+  foot_l:'Left foot path (ankle → heel → toe). Change d= for step angles.',
+  toe_l:'Left toe line stub.',
+  hip_r:'Right iliac stub. Controls leg hip-socket pivot.',
+  thigh_r:'Right femur. Controls leg swing and kick.',
+  shin_r:'Right tibia/fibula. Controls lower leg bend.',
+  foot_r:'Right foot path. Change d= for step angles.',
+  toe_r:'Right toe line stub.',
+};
+
+// ─── Bone hierarchy for tree display ─────────────────────────
+const BONE_TREE = [
+  { name:'pelvis',       depth:0, group:'Core' },
+  { name:'spine_lower',  depth:1, group:'Core' },
+  { name:'spine_mid',    depth:1, group:'Core' },
+  { name:'spine_upper',  depth:1, group:'Core' },
+  { name:'neck',         depth:2, group:'Core' },
+  { name:'head',         depth:3, group:'Head' },
+  { name:'eye_l',        depth:4, group:'Head' },
+  { name:'eye_r',        depth:4, group:'Head' },
+  { name:'eyebrow_l',    depth:4, group:'Head' },
+  { name:'eyebrow_r',    depth:4, group:'Head' },
+  { name:'mouth',        depth:4, group:'Head' },
+  { name:'sweat',        depth:4, group:'Head' },
+  { name:'shoulder_l',   depth:1, group:'Left Arm' },
+  { name:'upperarm_l',   depth:2, group:'Left Arm' },
+  { name:'forearm_l',    depth:3, group:'Left Arm' },
+  { name:'hand_l',       depth:4, group:'Left Arm' },
+  { name:'thumb_l',      depth:5, group:'Left Arm' },
+  { name:'index_l',      depth:5, group:'Left Arm' },
+  { name:'pinky_l',      depth:5, group:'Left Arm' },
+  { name:'shoulder_r',   depth:1, group:'Right Arm' },
+  { name:'upperarm_r',   depth:2, group:'Right Arm' },
+  { name:'forearm_r',    depth:3, group:'Right Arm' },
+  { name:'hand_r',       depth:4, group:'Right Arm' },
+  { name:'thumb_r',      depth:5, group:'Right Arm' },
+  { name:'index_r',      depth:5, group:'Right Arm' },
+  { name:'pinky_r',      depth:5, group:'Right Arm' },
+  { name:'hip_l',        depth:1, group:'Left Leg' },
+  { name:'thigh_l',      depth:2, group:'Left Leg' },
+  { name:'shin_l',       depth:3, group:'Left Leg' },
+  { name:'foot_l',       depth:4, group:'Left Leg' },
+  { name:'toe_l',        depth:5, group:'Left Leg' },
+  { name:'hip_r',        depth:1, group:'Right Leg' },
+  { name:'thigh_r',      depth:2, group:'Right Leg' },
+  { name:'shin_r',       depth:3, group:'Right Leg' },
+  { name:'foot_r',       depth:4, group:'Right Leg' },
+  { name:'toe_r',        depth:5, group:'Right Leg' },
+];
+
+const GROUP_COLORS = {
+  'Core':'#38bdf8','Head':'#a78bfa','Left Arm':'#34d399',
+  'Right Arm':'#f97316','Left Leg':'#f472b6','Right Leg':'#facc15'
+};
+
+// ─── Init ─────────────────────────────────────────────────────
+const rig = window.rig = new GKStickmanSkeleton('skeleton-svg', {
+  id:'gk', x:0, y:0, scale:1, color:'#f8fafc', strokeWidth:7,
+  fill:'#090e1a', eyeColor:'#38bdf8'
+});
+
+// ─── Build Bone Tree ─────────────────────────────────────────
+let lastGroup = '';
+const treeEl = document.getElementById('bone-tree');
+BONE_TREE.forEach(b => {
+  if(b.group !== lastGroup) {
+    const cat = document.createElement('div');
+    cat.className = 'bone-category';
+    cat.textContent = b.group;
+    cat.style.color = GROUP_COLORS[b.group] || '#64748b';
+    treeEl.appendChild(cat);
+    lastGroup = b.group;
+  }
+  const item = document.createElement('div');
+  item.className = 'bone-item';
+  item.style.setProperty('--depth', b.depth);
+  item.dataset.bone = b.name;
+  item.innerHTML = `
+    <div class="bone-dot" style="background:${GROUP_COLORS[b.group]}33;border:1.5px solid ${GROUP_COLORS[b.group]}"></div>
+    <div>
+      <div class="bone-name">${b.name}</div>
+    </div>`;
+  item.addEventListener('click', () => selectBone(b.name, item));
+  treeEl.appendChild(item);
+});
+
+// ─── Build Pose Grid ─────────────────────────────────────────
+const POSE_DEFS = [
+  { key:'idle',          emoji:'🧍', label:'Idle' },
+  { key:'phone_call',    emoji:'📞', label:'Phone Call' },
+  { key:'pointing_up',   emoji:'☝️', label:'Pointing Up' },
+  { key:'shocked',       emoji:'😱', label:'Shocked' },
+  { key:'thinking',      emoji:'🤔', label:'Thinking' },
+  { key:'crouching',     emoji:'🦵', label:'Crouching' },
+  { key:'peephole',      emoji:'👁️', label:'Peephole' },
+  { key:'foot_inspect',  emoji:'🦶', label:'Foot Inspect' },
+  { key:'frozen_horror', emoji:'🥶', label:'Frozen Horror' },
+  { key:'flinch',        emoji:'😬', label:'Flinch' },
+];
+
+const poseGrid = document.getElementById('pose-grid');
+POSE_DEFS.forEach(p => {
+  const btn = document.createElement('div');
+  btn.className = 'pose-btn';
+  btn.dataset.pose = p.key;
+  btn.innerHTML = `<span class="pose-emoji">${p.emoji}</span>${p.label}`;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pose-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    rig.animate(p.key, 0.5, 'power2.inOut');
+  });
+  poseGrid.appendChild(btn);
+});
+
+// ─── Bone Selection ───────────────────────────────────────────
+let selectedBoneEl = null;
+function selectBone(name, itemEl) {
+  document.querySelectorAll('.bone-item').forEach(i => i.classList.remove('selected'));
+  itemEl.classList.add('selected');
+  
+  // De-highlight previous
+  if(selectedBoneEl) {
+    gsap.to(selectedBoneEl, { filter:'none', duration:0.2 });
+  }
+
+  const b = rig.getBone(name);
+  if(b) {
+    gsap.fromTo(b, { filter:'drop-shadow(0 0 2px #38bdf8)' }, { filter:'drop-shadow(0 0 10px #38bdf8)', duration:0.3 });
+    selectedBoneEl = b;
+  }
+
+  // Show info
+  const info = document.getElementById('bone-info');
+  const attrs = b ? [...b.attributes].map(a => `<div class="attr-row"><span class="attr-key">${a.name}</span><span class="attr-val">${parseFloat(a.value)==a.value?parseFloat(a.value).toFixed(1):a.value}</span></div>`).join('') : '';
+  info.innerHTML = `
+    <div class="info-card">
+      <h3 style="color:${GROUP_COLORS[BONE_TREE.find(x=>x.name===name)?.group]||'#38bdf8'}">${name}</h3>
+      <p>${BONE_INDEX[name]||'No description.'}</p>
+    </div>
+    ${b ? `<div class="info-card"><h3>📐 SVG Attributes</h3>${attrs}</div>` : ''}
+    <div class="info-card">
+      <h3>💻 Code</h3>
+      <p style="font-family:monospace;color:#38bdf8;font-size:11px">
+        rig.getBone('${name}')<br>
+        rig.animateBones({<br>
+        &nbsp;&nbsp;${name}: { x2:..., y2:... }<br>
+        }, 0.5, 'power2.inOut')<br>
+      </p>
+    </div>`;
+}
+
+// ─── Control Buttons ─────────────────────────────────────────
+let breathOn = false, walkOn = false, labelsOn = false;
+
+window.toggleBreath = () => {
+  breathOn = !breathOn;
+  breathOn ? rig.startBreathing() : rig.stopBreathing();
+};
+
+window.toggleWalk = () => {
+  walkOn = !walkOn;
+  walkOn ? rig.startWalk(0.5) : rig.stopWalk();
+};
+
+window.toggleLabels = () => {
+  labelsOn = !labelsOn;
+  document.querySelectorAll('.bone-label-svg').forEach(l => l.remove());
+  if(labelsOn) {
+    BONE_TREE.forEach(b => {
+      const bone = rig.getBone(b.name);
+      if(!bone) return;
+      const svgEl = document.getElementById('skeleton-svg');
+      const ns = 'http://www.w3.org/2000/svg';
+      const bbox = bone.getBoundingClientRect
+        ? (() => { try { return bone.getBBox(); } catch(e) { return null; } })()
+        : null;
+      if(!bbox) return;
+      const lbl = document.createElementNS(ns, 'text');
+      lbl.setAttribute('x', bbox.x + bbox.width/2);
+      lbl.setAttribute('y', bbox.y + bbox.height/2 - 4);
+      lbl.setAttribute('class','bone-label bone-label-svg');
+      lbl.setAttribute('fill', GROUP_COLORS[b.group]||'#38bdf8');
+      lbl.setAttribute('font-size', '8');
+      lbl.setAttribute('text-anchor', 'middle');
+      lbl.setAttribute('font-family', 'monospace');
+      lbl.textContent = b.name;
+      rig.root.appendChild(lbl);
+    });
+  }
+};
+
+window.resetPose = () => {
+  document.querySelectorAll('.pose-btn').forEach(b => b.classList.remove('active'));
+  rig.animate('idle', 0.5, 'back.out(1.4)');
+};
+
+// Auto start with breathing
+rig.startBreathing();
+breathOn = true;
+console.log('[GK Skeleton Harness] Ready — 36 bones loaded:', rig.getBoneNames());
+</script>
+</body>
+</html>

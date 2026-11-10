@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GrowKaz Stickman Rig Demo - Welded Bone System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #090e17;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Montserrat', sans-serif;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+    #viewport {
+      width: 540px;
+      height: 960px;
+      position: relative;
+      background: #0d1527;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 0 2px #1e293b;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    svg.stage {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #hud-info {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+      z-index: 100;
+      pointer-events: none;
+    }
+    #hud-status {
+      color: #facc15;
+      font-size: 11px;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+  </style>
+  <script src="./gsap.min.js"></script>
+</head>
+<body>
+
+  <div id="viewport">
+    <div id="hud-info">
+      <div>GROWKAZ RIG DEMO v2.0</div>
+      <div id="hud-status">Status: Initializing...</div>
+    </div>
+
+    <svg class="stage" viewBox="0 0 1080 1920">
+      <defs>
+        <filter id="shadowFilter" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="8" result="blur"/>
+          <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.5 0"/>
+        </filter>
+        <filter id="softGlow">
+          <feGaussianBlur stdDeviation="6" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+
+        <!-- Medieval Wall Gradient -->
+        <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#141a29"/>
+          <stop offset="60%" stop-color="#182238"/>
+          <stop offset="100%" stop-color="#0f1624"/>
+        </linearGradient>
+
+        <!-- Floor Gradient -->
+        <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2a1f14"/>
+          <stop offset="30%" stop-color="#1c140d"/>
+          <stop offset="100%" stop-color="#0c0906"/>
+        </linearGradient>
+
+        <!-- Cobblestone Pattern -->
+        <pattern id="floorCobble" width="120" height="60" patternUnits="userSpaceOnUse">
+          <path d="M 0 0 L 120 0 L 120 60 L 0 60 Z" fill="none" stroke="#3d2c1c" stroke-width="2" opacity="0.4"/>
+          <path d="M 60 0 L 60 60" stroke="#3d2c1c" stroke-width="2" opacity="0.3"/>
+          <ellipse cx="30" cy="30" rx="22" ry="12" fill="#241a11" opacity="0.5"/>
+          <ellipse cx="90" cy="30" rx="22" ry="12" fill="#281e13" opacity="0.5"/>
+        </pattern>
+      </defs>
+
+      <!-- ── BACKGROUND ENVIRONMENT ── -->
+      <!-- Wall -->
+      <rect x="0" y="0" width="1080" height="1350" fill="url(#wallGrad)"/>
+      <!-- Stone Trim / Skirting -->
+      <rect x="0" y="1320" width="1080" height="40" fill="#27354f" stroke="#0f1624" stroke-width="3"/>
+
+      <!-- Floor -->
+      <rect x="0" y="1350" width="1080" height="570" fill="url(#floorGrad)"/>
+      <rect x="0" y="1350" width="1080" height="570" fill="url(#floorCobble)"/>
+
+      <!-- Decorative Props: Wall Notice / Wanted Poster -->
+      <g id="wanted-poster" transform="translate(180, 520)">
+        <rect x="-80" y="-110" width="160" height="220" rx="6" fill="#f5e6c8" stroke="#3d2a0f" stroke-width="5"/>
+        <!-- Notice Header -->
+        <rect x="-70" y="-100" width="140" height="30" fill="#881337" rx="3"/>
+        <text x="0" y="-80" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="16" fill="#ffffff">WANTED</text>
+        <!-- Sketch on poster -->
+        <circle cx="0" cy="-25" r="28" fill="none" stroke="#3d2a0f" stroke-width="4"/>
+        <line x1="-10" y1="-28" x2="-6" y2="-28" stroke="#3d2a0f" stroke-width="4" stroke-linecap="round"/>
+        <line x1="6" y1="-28" x2="10" y2="-28" stroke="#3d2a0f" stroke-width="4" stroke-linecap="round"/>
+        <path d="M -8 -15 Q 0 -8 8 -15" fill="none" stroke="#3d2a0f" stroke-width="3"/>
+        <text x="0" y="40" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="800" font-size="12" fill="#1e1b18">SHOE THIEF</text>
+        <text x="0" y="60" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="15" fill="#b91c1c">REWARD: 1000$</text>
+        <circle cx="0" cy="-105" r="5" fill="#dc2626"/>
+      </g>
+
+      <!-- Prop: Workbench / Table with Shoe and Tools -->
+      <g id="env-table" transform="translate(850, 1420)">
+        <!-- Shadow -->
+        <ellipse cx="0" cy="90" rx="160" ry="24" fill="rgba(0,0,0,0.5)" filter="url(#shadowFilter)"/>
+        <!-- Table top -->
+        <polygon points="-150,-15 150,-15 170,25 -170,25" fill="#78350f" stroke="#121824" stroke-width="5"/>
+        <rect x="-170" y="25" width="340" height="16" fill="#582509" stroke="#121824" stroke-width="4"/>
+        <!-- Legs -->
+        <rect x="-150" y="41" width="22" height="110" rx="5" fill="#451a03" stroke="#121824" stroke-width="4"/>
+        <rect x="128" y="41" width="22" height="110" rx="5" fill="#451a03" stroke="#121824" stroke-width="4"/>
+        <!-- Crossbar -->
+        <rect x="-130" y="100" width="260" height="12" rx="4" fill="#351402" stroke="#121824" stroke-width="3"/>
+
+        <!-- Craft Prop: Golden Boot on Table -->
+        <g id="craft-shoe" transform="translate(-40, 0)">
+          <ellipse cx="0" cy="18" rx="35" ry="9" fill="#1e130b" stroke="#0f172a" stroke-width="4"/>
+          <path d="M -28 14 Q -22 -12 0 -8 Q 24 -4 30 10 L 30 18 Q 0 24 -28 18 Z" fill="#b45309" stroke="#121824" stroke-width="4"/>
+          <!-- Laces -->
+          <line x1="-5" y1="-2" x2="8" y2="-2" stroke="#facc15" stroke-width="3" stroke-linecap="round"/>
+          <line x1="-3" y1="5" x2="10" y2="5" stroke="#facc15" stroke-width="3" stroke-linecap="round"/>
+          <!-- Glow indicator -->
+          <circle cx="0" cy="0" r="45" fill="none" stroke="#facc15" stroke-width="2" stroke-dasharray="6,4" opacity="0.6"/>
+        </g>
+        <!-- Small hammer tool -->
+        <g transform="translate(50, 10)">
+          <rect x="-4" y="-30" width="8" height="40" rx="3" fill="#92400e" stroke="#121824" stroke-width="2"/>
+          <rect x="-18" y="-36" width="36" height="12" rx="3" fill="#64748b" stroke="#121824" stroke-width="3"/>
+        </g>
+      </g>
+
+      <!-- ── MASTER CHARACTER RIG (HERO COBBLER / ACTOR) ── -->
+      <!-- Coords: Initial off-screen left x=-200, y=1420 -->
+      <g id="char-ROOT" transform="translate(-200, 1420)">
+
+        <!-- Dynamic Ground Shadow -->
+        <ellipse id="char-shadow" cx="0" cy="30" rx="65" ry="15" fill="rgba(0,0,0,0.55)" filter="url(#shadowFilter)"/>
+
+        <!-- ── LEGS GROUP ── -->
+        <g id="legs">
+          <!-- LEFT LEG -->
+          <g id="hip_l">
+            <line id="thigh_l" x1="0" y1="0" x2="-28" y2="90" stroke="#f8fafc" stroke-width="9" stroke-linecap="round"/>
+            <g id="knee_l" transform="translate(-28,90)">
+              <line id="shin_l" x1="0" y1="0" x2="-10" y2="95" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+              <g id="ankle_l" transform="translate(-10,95)">
+                <!-- Left Shoe Detail -->
+                <g id="shoe_l">
+                  <line x1="0" y1="0" x2="-5" y2="24" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+                  <!-- Leather Shoe Base -->
+                  <ellipse cx="-16" cy="24" rx="22" ry="9" fill="#78350f" stroke="#121824" stroke-width="4"/>
+                  <ellipse cx="-26" cy="22" rx="10" ry="8" fill="#78350f" stroke="#121824" stroke-width="3"/>
+                  <!-- Laces & Sole -->
+                  <path d="M -18 18 Q -14 13 -10 18" fill="none" stroke="#fde68a" stroke-width="2.5" stroke-linecap="round"/>
+                  <rect x="-35" y="28" width="42" height="6" rx="3" fill="#29180b" stroke="#121824" stroke-width="2"/>
+                </g>
+              </g>
+            </g>
+          </g>
+
+          <!-- RIGHT LEG -->
+          <g id="hip_r">
+            <line id="thigh_r" x1="0" y1="0" x2="28" y2="90" stroke="#f8fafc" stroke-width="9" stroke-linecap="round"/>
+            <g id="knee_r" transform="translate(28,90)">
+              <line id="shin_r" x1="0" y1="0" x2="10" y2="95" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+              <g id="ankle_r" transform="translate(10,95)">
+                <!-- Right Shoe Detail -->
+                <g id="shoe_r">
+                  <line x1="0" y1="0" x2="5" y2="24" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+                  <ellipse cx="16" cy="24" rx="22" ry="9" fill="#78350f" stroke="#121824" stroke-width="4"/>
+                  <ellipse cx="26" cy="22" rx="10" ry="8" fill="#78350f" stroke="#121824" stroke-width="3"/>
+                  <path d="M 10 18 Q 14 13 18 18" fill="none" stroke="#fde68a" stroke-width="2.5" stroke-linecap="round"/>
+                  <rect x="-7" y="28" width="42" height="6" rx="3" fill="#29180b" stroke="#121824" stroke-width="2"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g><!-- /legs -->
+
+        <!-- ── TORSO GROUP ── -->
+        <g id="torso">
+          <!-- Spine backbone -->
+          <line id="spine" x1="0" y1="0" x2="0" y2="-120" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+
+          <!-- Vest / Clothes Body (covers spine) -->
+          <rect id="vest" x="-26" y="-115" width="52" height="85" rx="10" fill="#1e3a8a" stroke="#121824" stroke-width="5"/>
+          <!-- Apron / Belt -->
+          <rect x="-24" y="-35" width="48" height="15" rx="4" fill="#92400e" stroke="#121824" stroke-width="3"/>
+          <rect x="-8" y="-36" width="16" height="17" rx="3" fill="#facc15" stroke="#121824" stroke-width="2.5"/>
+
+          <!-- ── LEFT ARM ── -->
+          <g id="shoulder_l" transform="translate(0,-108)">
+            <line id="upperarm_l" x1="0" y1="0" x2="-55" y2="45" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+            <g id="elbow_l" transform="translate(-55,45)">
+              <line id="forearm_l" x1="0" y1="0" x2="-45" y2="50" stroke="#f8fafc" stroke-width="7" stroke-linecap="round"/>
+              <g id="wrist_l" transform="translate(-45,50)">
+                <!-- Left Hand with Glove / Fingers -->
+                <circle id="hand_l" cx="0" cy="0" r="12" fill="#fde68a" stroke="#121824" stroke-width="3.5"/>
+                <!-- Finger stubs -->
+                <line x1="-8" y1="-6" x2="-14" y2="-12" stroke="#121824" stroke-width="3" stroke-linecap="round"/>
+                <line x1="-2" y1="-8" x2="-4"  y2="-16" stroke="#121824" stroke-width="3" stroke-linecap="round"/>
+                <line x1="6"  y1="-6" x2="10"  y2="-13" stroke="#121824" stroke-width="3" stroke-linecap="round"/>
+              </g>
+            </g>
+          </g>
+
+          <!-- ── RIGHT ARM ── -->
+          <g id="shoulder_r" transform="translate(0,-108)">
+            <line id="upperarm_r" x1="0" y1="0" x2="55" y2="45" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+            <g id="elbow_r" transform="translate(55,45)">
+              <line id="forearm_r" x1="0" y1="0" x2="45" y2="50" stroke="#f8fafc" stroke-width="7" stroke-linecap="round"/>
+              <g id="wrist_r" transform="translate(45,50)">
+                <!-- Right Hand -->
+                <circle id="hand_r" cx="0" cy="0" r="12" fill="#fde68a" stroke="#121824" stroke-width="3.5"/>
+                <line x1="8"  y1="-6" x2="14" y2="-12" stroke="#121824" stroke-width="3" stroke-linecap="round"/>
+                <line x1="2"  y1="-8" x2="4"  y2="-16" stroke="#121824" stroke-width="3" stroke-linecap="round"/>
+                <line x1="-6" y1="-6" x2="-10" y2="-13" stroke="#121824" stroke-width="3" stroke-linecap="round"/>
+              </g>
+            </g>
+          </g>
+
+          <!-- ── NECK + HEAD HIERARCHY (WELDED - NO GAP EVER) ── -->
+          <g id="neck" transform="translate(0,-120)">
+            <!-- Neck bridge collar: seamless transition -->
+            <rect id="neck-bridge" x="-12" y="-22" width="24" height="26" rx="8" fill="#fde68a" stroke="none"/>
+            <line id="neck-line" x1="0" y1="0" x2="0" y2="-18" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+
+            <!-- Head Group -->
+            <g id="head" transform="translate(0,-60)">
+              <!-- Head Skull -->
+              <circle id="skull" cx="0" cy="0" r="46" fill="#fde68a" stroke="#121824" stroke-width="8"/>
+
+              <!-- Hair Cap -->
+              <path id="hair" d="M -46 -8 Q -34 -66 0 -68 Q 34 -66 46 -8" fill="#1e293b" stroke="#121824" stroke-width="5" stroke-linecap="round"/>
+
+              <!-- EYES -->
+              <circle id="eye_l" cx="-16" cy="-6" r="6" fill="#0f172a"/>
+              <circle id="eye_r" cx="16"  cy="-6" r="6" fill="#0f172a"/>
+              <!-- Eye Highlights -->
+              <circle id="shine_l" cx="-14" cy="-8" r="2.2" fill="#ffffff"/>
+              <circle id="shine_r" cx="18"  cy="-8" r="2.2" fill="#ffffff"/>
+
+              <!-- EYEBROWS (Animated for expressions) -->
+              <path id="brow_l" d="M -26 -20 Q -16 -26 -6 -20" stroke="#0f172a" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+              <path id="brow_r" d="M 6 -20 Q 16 -26 26 -20"    stroke="#0f172a" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+
+              <!-- MOUTH (Animated via GSAP attr:d) -->
+              <path id="mouth" d="M -16 14 Q 0 24 16 14" stroke="#0f172a" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+
+              <!-- Micro details: Nose & Ears -->
+              <circle cx="0" cy="6" r="2.5" fill="#0f172a" opacity="0.4"/>
+              <ellipse cx="-47" cy="0" rx="5" ry="9" fill="#fde68a" stroke="#121824" stroke-width="3"/>
+              <ellipse cx="47"  cy="0" rx="5" ry="9" fill="#fde68a" stroke="#121824" stroke-width="3"/>
+            </g><!-- /head -->
+          </g><!-- /neck -->
+
+        </g><!-- /torso -->
+      </g><!-- /char-ROOT -->
+
+      <!-- ── CINEMATIC DIALOGUE OVERLAY / SUBTITLE CARD ── -->
+      <g id="speech-bubble" transform="translate(540, 950)" opacity="0">
+        <rect x="-260" y="-70" width="520" height="110" rx="18" fill="rgba(15, 23, 42, 0.95)" stroke="#38bdf8" stroke-width="4" filter="url(#softGlow)"/>
+        <polygon points="-20,40 0,65 20,40" fill="#0f172a" stroke="#38bdf8" stroke-width="4"/>
+        <text id="bubble-speaker" x="0" y="-35" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="16" fill="#38bdf8" letter-spacing="2">CORVIN (COBBLER)</text>
+        <text id="bubble-text" x="0" y="10" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="24" fill="#ffffff">"ALL MY SHOES WERE STOLEN!"</text>
+      </g>
+    </svg>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById("hud-status");
+    const masterTimeline = gsap.timeline({ repeat: -1, repeatDelay: 1.0 });
+
+    // Mouth Shapes
+    const MOUTH_CLOSED   = "M -16 14 Q 0 24 16 14";
+    const MOUTH_SPEAK_A  = "M -18 10 Q 0 32 18 10"; // Wide
+    const MOUTH_SPEAK_B  = "M -14 12 Q 0 26 14 12"; // Half
+    const MOUTH_SHOCK    = "M -16 8 Q 0 38 16 8";   // Drop jaw O
+    const MOUTH_SMILE    = "M -16 10 Q 0 28 16 10";
+
+    // ── 0.0s - 2.0s: WALK IN FROM LEFT ──
+    masterTimeline.add(() => { statusEl.textContent = "0.0s - 2.0s: Walking into frame"; }, 0);
+
+    // ROOT slides from x:-200 to x:480
+    masterTimeline.to("#char-ROOT", {
+      x: 480,
+      duration: 2.0,
+      ease: "power1.inOut"
+    }, 0);
+
+    // Natural walk swing - legs
+    masterTimeline.to("#thigh_l", { attr: { x2: -45, y2: 65 }, duration: 0.25, repeat: 7, yoyo: true, ease: "sine.inOut" }, 0);
+    masterTimeline.to("#shin_l",  { attr: { x2: -25, y2: 95 }, duration: 0.25, repeat: 7, yoyo: true, ease: "sine.inOut" }, 0);
+    masterTimeline.to("#thigh_r", { attr: { x2: 25,  y2: 105 }, duration: 0.25, repeat: 7, yoyo: true, ease: "sine.inOut" }, 0.12);
+    masterTimeline.to("#shin_r",  { attr: { x2: 35,  y2: 80 },  duration: 0.25, repeat: 7, yoyo: true, ease: "sine.inOut" }, 0.12);
+
+    // Opposite arms swing during walk
+    masterTimeline.to("#upperarm_l", { attr: { x2: -35, y2: 20 }, duration: 0.25, repeat: 7, yoyo: true, ease: "sine.inOut" }, 0);
+    masterTimeline.to("#upperarm_r", { attr: { x2: 35,  y2: 60 }, duration: 0.25, repeat: 7, yoyo: true, ease: "sine.inOut" }, 0.12);
+
+    // Slight vertical bounce during walk
+    masterTimeline.to("#torso", { y: "+=10", duration: 0.125, repeat: 15, yoyo: true, ease: "sine.inOut" }, 0);
+
+    // ── 2.0s - 3.5s: STOP & IDLE BREATHING ──
+    masterTimeline.add(() => { statusEl.textContent = "2.0s - 3.5s: Idle Stand & Natural Breathing"; }, 2.0);
+
+    // Reset legs to neutral stand
+    masterTimeline.to("#thigh_l", { attr: { x2: -28, y2: 90 }, duration: 0.2 }, 2.0);
+    masterTimeline.to("#shin_l",  { attr: { x2: -10, y2: 95 }, duration: 0.2 }, 2.0);
+    masterTimeline.to("#thigh_r", { attr: { x2: 28,  y2: 90 }, duration: 0.2 }, 2.0);
+    masterTimeline.to("#shin_r",  { attr: { x2: 10,  y2: 95 }, duration: 0.2 }, 2.0);
+    masterTimeline.to("#upperarm_l", { attr: { x2: -55, y2: 45 }, duration: 0.2 }, 2.0);
+    masterTimeline.to("#upperarm_r", { attr: { x2: 55,  y2: 45 }, duration: 0.2 }, 2.0);
+
+    // Natural Idle breathing: chest and head subtle rise and fall
+    masterTimeline.to("#torso", { y: "-=6", duration: 0.7, repeat: 1, yoyo: true, ease: "sine.inOut" }, 2.1);
+    masterTimeline.to("#char-shadow", { rx: 60, opacity: 0.45, duration: 0.7, repeat: 1, yoyo: true }, 2.1);
+
+    // ── 3.5s - 5.5s: GESTURE & DIALOGUE (TALKING & WAVING) ──
+    masterTimeline.add(() => { statusEl.textContent = "3.5s - 5.5s: Talking, Hand Gesture & Eye Emotion"; }, 3.5);
+
+    // Show speech bubble
+    masterTimeline.to("#speech-bubble", { opacity: 1, y: 920, duration: 0.35, ease: "back.out(1.5)" }, 3.5);
+
+    // Arm raises to point at the wanted poster
+    masterTimeline.to("#upperarm_l", { attr: { x2: -75, y2: -35 }, duration: 0.4, ease: "power2.out" }, 3.5);
+    masterTimeline.to("#forearm_l",  { attr: { x2: -65, y2: -40 }, duration: 0.4, ease: "power2.out" }, 3.5);
+
+    // Right arm waves
+    masterTimeline.to("#upperarm_r", { attr: { x2: 40, y2: -70 }, duration: 0.4, ease: "back.out(1.5)" }, 3.5);
+    masterTimeline.to("#forearm_r",  { attr: { x2: 10, y2: -60 }, duration: 0.4 }, 3.5);
+    masterTimeline.to("#wrist_r",    { rotation: 30, transformOrigin: "0 0", repeat: 5, yoyo: true, duration: 0.18 }, 3.9);
+
+    // Eyebrows arch in surprise/concern
+    masterTimeline.to("#brow_l", { attr: { d: "M -26 -28 Q -16 -34 -6 -28" }, duration: 0.25 }, 3.5);
+    masterTimeline.to("#brow_r", { attr: { d: "M 6 -28 Q 16 -34 26 -28" }, duration: 0.25 }, 3.5);
+
+    // Synchronized mouth cycle during speech
+    for (let i = 0; i < 8; i++) {
+      const t = 3.6 + i * 0.22;
+      const shape = (i % 2 === 0) ? MOUTH_SPEAK_A : MOUTH_SPEAK_B;
+      masterTimeline.to("#mouth", { attr: { d: shape }, duration: 0.1, ease: "linear" }, t);
+    }
+    masterTimeline.to("#mouth", { attr: { d: MOUTH_CLOSED }, duration: 0.15 }, 5.4);
+
+    // ── 5.5s - 7.5s: SHOCK & POINTING AT TABLE ASSETS ──
+    masterTimeline.add(() => { statusEl.textContent = "5.5s - 7.5s: Shock Reaction & Turning Right"; }, 5.5);
+
+    // Speech bubble fades
+    masterTimeline.to("#speech-bubble", { opacity: 0, y: 950, duration: 0.25 }, 5.5);
+
+    // Turn character slightly right (towards workbench)
+    masterTimeline.to("#char-ROOT", { scaleX: 1.05, duration: 0.3 }, 5.5);
+
+    // Shock expression: Jaw drops, eyes widen, high brows
+    masterTimeline.to("#mouth", { attr: { d: MOUTH_SHOCK }, duration: 0.2 }, 5.5);
+    masterTimeline.to("#eye_l", { attr: { r: 8 }, duration: 0.2 }, 5.5);
+    masterTimeline.to("#eye_r", { attr: { r: 8 }, duration: 0.2 }, 5.5);
+    masterTimeline.to("#brow_l", { attr: { d: "M -26 -32 Q -16 -40 -6 -32" }, duration: 0.2 }, 5.5);
+    masterTimeline.to("#brow_r", { attr: { d: "M 6 -32 Q 16 -40 26 -32" }, duration: 0.2 }, 5.5);
+
+    // Both hands rise to head / cheeks in distress
+    masterTimeline.to("#upperarm_l", { attr: { x2: -45, y2: -90 }, duration: 0.35, ease: "back.out(1.8)" }, 5.5);
+    masterTimeline.to("#forearm_l",  { attr: { x2: 25,  y2: -45 }, duration: 0.35 }, 5.5);
+    masterTimeline.to("#upperarm_r", { attr: { x2: 45,  y2: -90 }, duration: 0.35, ease: "back.out(1.8)" }, 5.5);
+    masterTimeline.to("#forearm_r",  { attr: { x2: -25, y2: -45 }, duration: 0.35 }, 5.5);
+
+    // ── 7.5s - 10.0s: WALK TOWARDS WORKBENCH & EXIT ──
+    masterTimeline.add(() => { statusEl.textContent = "7.5s - 10.0s: Walking towards table & exit"; }, 7.5);
+
+    // Reset face
+    masterTimeline.to("#mouth", { attr: { d: MOUTH_SMILE }, duration: 0.2 }, 7.5);
+    masterTimeline.to("#eye_l", { attr: { r: 6 }, duration: 0.2 }, 7.5);
+    masterTimeline.to("#eye_r", { attr: { r: 6 }, duration: 0.2 }, 7.5);
+    masterTimeline.to("#brow_l", { attr: { d: "M -26 -20 Q -16 -26 -6 -20" }, duration: 0.2 }, 7.5);
+    masterTimeline.to("#brow_r", { attr: { d: "M 6 -20 Q 16 -26 26 -20" }, duration: 0.2 }, 7.5);
+
+    // Walk forward right
+    masterTimeline.to("#char-ROOT", { x: 1300, duration: 2.3, ease: "power1.in" }, 7.6);
+
+    // Leg walk cycle
+    masterTimeline.to("#thigh_l", { attr: { x2: -45, y2: 65 }, duration: 0.25, repeat: 8, yoyo: true, ease: "sine.inOut" }, 7.6);
+    masterTimeline.to("#shin_l",  { attr: { x2: -25, y2: 95 }, duration: 0.25, repeat: 8, yoyo: true, ease: "sine.inOut" }, 7.6);
+    masterTimeline.to("#thigh_r", { attr: { x2: 25,  y2: 105 }, duration: 0.25, repeat: 8, yoyo: true, ease: "sine.inOut" }, 7.72);
+    masterTimeline.to("#shin_r",  { attr: { x2: 35,  y2: 80 },  duration: 0.25, repeat: 8, yoyo: true, ease: "sine.inOut" }, 7.72);
+
+    // Arm swings
+    masterTimeline.to("#upperarm_l", { attr: { x2: -35, y2: 20 }, duration: 0.25, repeat: 8, yoyo: true, ease: "sine.inOut" }, 7.6);
+    masterTimeline.to("#upperarm_r", { attr: { x2: 35,  y2: 60 }, duration: 0.25, repeat: 8, yoyo: true, ease: "sine.inOut" }, 7.72);
+
+    // ── CONTINUOUS CAMERA PUSH-IN ("Camera Kabhi Rukta Nahi") ──
+    gsap.to("svg.stage", {
+      scale: 1.08,
+      x: -30,
+      y: -25,
+      duration: 10.0,
+      ease: "sine.inOut",
+      repeat: -1,
+      yoyo: true
+    });
+  </script>
+</body>
+</html>
+

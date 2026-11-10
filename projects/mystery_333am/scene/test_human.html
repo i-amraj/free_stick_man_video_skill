@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Realistic 3D Human Preview</title>
+  <script src="lib/three.min.js"></script>
+  <script src="lib/meshopt_decoder.js"></script>
+  <script src="lib/GLTFLoader.js"></script>
+  <style>
+    body { margin: 0; background: #080d1a; overflow: hidden; }
+    canvas { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+<script>
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a101f);
+
+  const camera = new THREE.PerspectiveCamera(45, 1080 / 1920, 0.1, 50);
+  camera.position.set(0, 1.35, 2.8);
+  camera.lookAt(0, 1.25, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(1080, 1920);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  document.body.appendChild(renderer.domElement);
+
+  // Key Studio Lighting
+  const keyLight = new THREE.DirectionalLight(0xfff5ea, 3.2);
+  keyLight.position.set(2, 5, 4);
+  keyLight.castShadow = true;
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.8);
+  fillLight.position.set(-3, 3, 2);
+  scene.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0xec4899, 2.5);
+  rimLight.position.set(0, 4, -3);
+  scene.add(rimLight);
+
+  scene.add(new THREE.AmbientLight(0x1e293b, 1.5));
+
+  // Ground plane
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(15, 15),
+    new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const loader = new THREE.GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  loader.load('models/real_human_male.glb', (gltf) => {
+    const model = gltf.scene;
+    
+    // Scale up to 1.8m human height
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const scaleFactor = 1.75 / size.y;
+    model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+    // Center on floor
+    const newBox = new THREE.Box3().setFromObject(model);
+    model.position.y = -newBox.min.y;
+
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    scene.add(model);
+    console.log("Scaled model added! Height:", scaleFactor * size.y);
+    window.modelReady = true;
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>

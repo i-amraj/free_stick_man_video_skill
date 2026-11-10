@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Comicron 1:1 Pixel-Accurate V5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Montserrat:wght@900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Fredoka', 'Montserrat', sans-serif;
+  }
+
+  #viewport {
+    width: 1080px;
+    height: 1920px;
+    position: relative;
+    overflow: hidden;
+    background: #111;
+    box-shadow: 0 0 60px rgba(0,0,0,0.95);
+  }
+
+  .scene {
+    position: absolute;
+    inset: 0;
+    width: 1080px;
+    height: 1920px;
+    display: none;
+    overflow: hidden;
+  }
+  .scene.active {
+    display: block;
+  }
+
+  .camera-rig {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 60%;
+  }
+
+  .bg-image {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Subtitles in exact Comicron style */
+  #caption-box {
+    position: absolute;
+    bottom: 220px;
+    left: 60px;
+    right: 60px;
+    z-index: 100;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .caption-phrase {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 66px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 1.5px;
+    line-height: 1.25;
+    -webkit-text-stroke: 4.5px #000000;
+    text-shadow: 0 6px 0 #000000, 0 8px 16px rgba(0,0,0,0.9);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 28px;
+  }
+
+  .word-span {
+    display: inline-block;
+    margin: 0 10px;
+    transition: transform 0.08s ease, color 0.08s ease;
+  }
+
+  .word-span.active {
+    color: #ffd600;
+    transform: scale(1.14);
+    -webkit-text-stroke: 4.5px #000000;
+    text-shadow: 0 6px 0 #000000, 0 0 22px rgba(255, 214, 0, 0.75);
+  }
+</style>
+<script src="gsap.min.js"></script>
+</head>
+<body>
+
+<div id="viewport">
+
+  <!-- ========================================================
+       SCENE 1 (0.0s - 3.2s): THE THIEF IN THE COBBLER SHOP
+  ======================================================== -->
+  <div id="scene1" class="scene active">
+    <div id="camera1" class="camera-rig">
+      <img src="assets/bg_scene1_shop_night.jpg" class="bg-image" />
+
+      <!-- Hanging Rope from Skylight -->
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute; pointer-events:none;">
+        <line id="thief-rope" x1="540" y1="180" x2="540" y2="1200" stroke="#d5be9d" stroke-width="7" />
+      </svg>
+
+      <!-- Exact Comicron Thief Rig -->
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute; pointer-events:none;">
+        <g id="thief-character" transform="translate(540, 880)">
+          <!-- Ground Shadow -->
+          <ellipse cx="0" cy="500" rx="75" ry="20" fill="rgba(0,0,0,0.45)" />
+
+          <!-- Stick Legs Hanging (Proportional ~120px) -->
+          <path id="thief-leg-l" d="M -18 140 L -25 240 L -10 255" stroke="#121824" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          <path id="thief-leg-r" d="M 18 140 L 35 225 L 55 245" stroke="#121824" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+          <!-- Torso (Navy Blue Capsule) -->
+          <g id="thief-body">
+            <rect x="-45" y="0" width="90" height="150" rx="45" fill="#1e3a5f" stroke="#121824" stroke-width="7" />
+            <!-- Gold Belt Stripe -->
+            <rect x="-43" y="85" width="86" height="16" fill="#eab308" />
+
+            <!-- Arm Gripping the Rope (Aligned to x:0, y:-10) -->
+            <path d="M 30 30 L 0 -10" stroke="#121824" stroke-width="7" stroke-linecap="round" fill="none" />
+            <circle cx="0" cy="-10" r="10" fill="#ffffff" stroke="#121824" stroke-width="4.5" />
+
+            <!-- Head Group (Directly mounted on top of body with neck cowl overlap) -->
+            <g id="thief-head" transform="translate(0, -50)">
+              <!-- Striped Neck Cowl connecting Head to Torso -->
+              <path d="M -30 0 L 30 0 L 22 25 L -22 25 Z" fill="#15803d" stroke="#121824" stroke-width="5" />
+              <line x1="-26" y1="12" x2="26" y2="12" stroke="#eab308" stroke-width="6" />
+
+              <!-- Round White Head -->
+              <circle cx="0" cy="-10" r="62" fill="#ffffff" stroke="#121824" stroke-width="7" />
+
+              <!-- Bandit Mask (Striped Green & Gold across chin/mouth) -->
+              <path d="M -60 -10 Q 0 5 60 -10 L 52 42 Q 0 60 -52 42 Z" fill="#15803d" stroke="#121824" stroke-width="6" />
+              <line x1="-56" y1="15" x2="56" y2="15" stroke="#eab308" stroke-width="9" />
+
+              <!-- Knit Beanie Hat on Head -->
+              <path d="M -62 -18 C -66 -95 66 -95 62 -18 Z" fill="#1e3a5f" stroke="#121824" stroke-width="7" />
+              <!-- Pom-Pom on Top -->
+              <circle cx="0" cy="-102" r="16" fill="#1e3a5f" stroke="#121824" stroke-width="5.5" />
+
+              <!-- Cute Arched Eyes (^ ^) -->
+              <path d="M -28 -28 Q -18 -42 -8 -28" stroke="#121824" stroke-width="6" stroke-linecap="round" fill="none" />
+              <path d="M 8 -28 Q 18 -42 28 -28" stroke="#121824" stroke-width="6" stroke-linecap="round" fill="none" />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       SCENE 2 (3.2s - 5.3s): CORVIN IN HIS SHOP WINDOW
+  ======================================================== -->
+  <div id="scene2" class="scene">
+    <div id="camera2" class="camera-rig">
+      <img src="assets/bg_scene2_window.jpg" class="bg-image" />
+
+      <!-- Signboard Text & Corvin in Window -->
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute; pointer-events:none;">
+        <!-- Signboard Text centered directly inside the green board -->
+        <g transform="translate(555, 575) rotate(-13)">
+          <text x="0" y="0" font-family="'Montserrat', sans-serif" font-size="22" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2.5" stroke="#12261b" stroke-width="1.5">CORVIN • SHOES FOR BOTH FEET</text>
+        </g>
+
+        <!-- Old Cobbler Corvin Standing in Window -->
+        <g id="corvin-character" transform="translate(485, 1180)">
+          <!-- Torso with Apron -->
+          <g id="corvin-body">
+            <rect x="-50" y="0" width="100" height="150" rx="50" fill="#e2e8f0" stroke="#121824" stroke-width="7" />
+            <!-- Leather Apron with Straps & Pocket -->
+            <path d="M -36 25 L -32 145 L 32 145 L 36 25 Z" fill="#92400e" stroke="#121824" stroke-width="6" />
+            <rect x="-22" y="75" width="44" height="36" rx="5" fill="#78350f" stroke="#121824" stroke-width="4" />
+
+            <!-- Head (Directly overlapping Torso Collar - NO GAP) -->
+            <g id="corvin-head" transform="translate(0, -50)">
+              <!-- Ears -->
+              <circle cx="-68" cy="0" r="14" fill="#ffffff" stroke="#121824" stroke-width="5" />
+              <circle cx="68" cy="0" r="14" fill="#ffffff" stroke="#121824" stroke-width="5" />
+
+              <!-- Round White Head -->
+              <circle cx="0" cy="0" r="68" fill="#ffffff" stroke="#121824" stroke-width="7" />
+
+              <!-- Round Spectacles / Glasses -->
+              <circle cx="-25" cy="-5" r="22" fill="none" stroke="#121824" stroke-width="5.5" />
+              <circle cx="25" cy="-5" r="22" fill="none" stroke="#121824" stroke-width="5.5" />
+              <line x1="-3" y1="-5" x2="3" y2="-5" stroke="#121824" stroke-width="5.5" />
+
+              <!-- Bewildered Eyes -->
+              <circle cx="-19" cy="-5" r="5.5" fill="#121824" />
+              <circle cx="31" cy="-5" r="5.5" fill="#121824" />
+
+              <!-- High Raised Eyebrows -->
+              <path d="M -40 -38 Q -25 -50 -10 -35" stroke="#121824" stroke-width="5" stroke-linecap="round" fill="none" />
+              <path d="M 10 -35 Q 25 -50 40 -38" stroke="#121824" stroke-width="5" stroke-linecap="round" fill="none" />
+
+              <!-- Stunned Wavy Mouth -->
+              <path d="M -18 32 Q 0 18 18 32" stroke="#121824" stroke-width="5.5" stroke-linecap="round" fill="none" />
+            </g>
+
+            <!-- Hands Holding Sign: "ONE RIGHT SHOE HALF PRICE" -->
+            <g id="corvin-sign" transform="translate(85, -35)">
+              <rect x="0" y="0" width="170" height="140" rx="8" fill="#ffffff" stroke="#3e2723" stroke-width="7" />
+              <text x="85" y="38" font-family="'Montserrat', sans-serif" font-size="19" font-weight="900" fill="#1e293b" text-anchor="middle">ONE RIGHT</text>
+              <text x="85" y="72" font-family="'Montserrat', sans-serif" font-size="24" font-weight="900" fill="#dc2626" text-anchor="middle">SHOE</text>
+              <text x="85" y="110" font-family="'Montserrat', sans-serif" font-size="17" font-weight="900" fill="#1e293b" text-anchor="middle">HALF PRICE</text>
+              <circle cx="0" cy="70" r="12" fill="#ffffff" stroke="#121824" stroke-width="5.5" />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       SCENE 3 (5.3s - 10.0s): THE LAUGHING ROYAL GUARDS
+       (Proportional Legs, Grounded on Cobblestones, Zero Disconnection)
+  ======================================================== -->
+  <div id="scene3" class="scene">
+    <div id="camera3" class="camera-rig">
+      <img src="assets/bg_scene3_street.jpg" class="bg-image" />
+
+      <!-- Characters Layer (Exact Comicron Scale & Grounding) -->
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute; pointer-events:none;">
+        
+        <!-- ================= CORVIN IN BACKGROUND (Sad Stickman) ================= -->
+        <g id="corvin-bg" transform="translate(170, 1380)">
+          <!-- Ground Shadow on sidewalk -->
+          <ellipse cx="0" cy="120" rx="35" ry="10" fill="rgba(0,0,0,0.4)" />
+          <!-- Stick Legs -->
+          <path d="M -10 65 L -12 120 M 10 65 L 12 120" stroke="#121824" stroke-width="5.5" stroke-linecap="round" />
+          <!-- Torso + Apron -->
+          <rect x="-28" y="0" width="56" height="90" rx="25" fill="#cbd5e1" stroke="#121824" stroke-width="5.5" />
+          <path d="M -20 16 L -17 85 L 17 85 L 20 16 Z" fill="#92400e" stroke="#121824" stroke-width="4.5" />
+          <!-- Head -->
+          <g transform="translate(0, -35)">
+            <circle cx="0" cy="0" r="40" fill="#ffffff" stroke="#121824" stroke-width="5.5" />
+            <circle cx="-13" cy="0" r="12" fill="none" stroke="#121824" stroke-width="3.5" />
+            <circle cx="13" cy="0" r="12" fill="none" stroke="#121824" stroke-width="3.5" />
+            <line x1="-1" y1="0" x2="1" y2="0" stroke="#121824" stroke-width="3.5" />
+            <circle cx="-10" cy="0" r="3.5" fill="#121824" />
+            <circle cx="16" cy="0" r="3.5" fill="#121824" />
+            <path d="M -10 20 Q 0 12 10 20" stroke="#121824" stroke-width="3.5" fill="none" />
+          </g>
+        </g>
+
+        <!-- ================= CHIEF GUARD (CENTER HERO - Grounded on Foreground Cobblestones) ================= -->
+        <g id="chief-guard" transform="translate(620, 1420)">
+          <!-- Ground Shadow under feet on cobblestones -->
+          <ellipse cx="0" cy="335" rx="75" ry="18" fill="rgba(0,0,0,0.45)" />
+
+          <!-- Proportional Stickman Legs (~155px) -->
+          <path id="chief-leg-l" d="M -22 170 L -25 330 L -45 335" stroke="#121824" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          <path id="chief-leg-r" d="M 22 170 L 25 330 L 45 335" stroke="#121824" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+          <!-- Torso & Head Rig (One unified hierarchical unit) -->
+          <g id="chief-body">
+            <!-- Royal Blue Pear/Capsule Torso -->
+            <rect x="-55" y="0" width="110" height="175" rx="52" fill="#2563eb" stroke="#121824" stroke-width="6.5" />
+            <!-- Gold Collar Trim at Neck -->
+            <path d="M -36 10 Q 0 22 36 10" stroke="#eab308" stroke-width="8" stroke-linecap="round" fill="none" />
+
+            <!-- Red Diagonal Sash -->
+            <line x1="-34" y1="18" x2="38" y2="155" stroke="#dc2626" stroke-width="11" />
+
+            <!-- Gold Medal on right chest -->
+            <circle cx="-25" cy="65" r="10" fill="#facc15" stroke="#121824" stroke-width="3" />
+
+            <!-- 3 Gold Buttons down center jacket seam -->
+            <line x1="0" y1="32" x2="0" y2="132" stroke="#1d4ed8" stroke-width="2.5" />
+            <circle cx="0" cy="46" r="4" fill="#facc15" />
+            <circle cx="0" cy="68" r="4" fill="#facc15" />
+            <circle cx="0" cy="90" r="4" fill="#facc15" />
+
+            <!-- Yellow Belt with Buckle -->
+            <rect x="-53" y="115" width="106" height="18" fill="#eab308" />
+
+            <!-- Left Arm Resting on Hip -->
+            <path d="M 50 35 Q 72 70 55 110 L 45 115" stroke="#121824" stroke-width="7" stroke-linecap="round" fill="none" />
+            <!-- Right Arm Bent Upward Laughing -->
+            <path id="chief-arm" d="M -50 35 Q -76 60 -45 75" stroke="#121824" stroke-width="7" stroke-linecap="round" fill="none" />
+            <circle cx="-45" cy="75" r="8.5" fill="#121824" />
+
+            <!-- HEAD GROUP (Nested cleanly inside torso with pivot at the neck!) -->
+            <g id="chief-head" transform="translate(0, -55)">
+              <!-- Round White Head (Sitting directly on the collar - ZERO GAP) -->
+              <circle cx="0" cy="0" r="65" fill="#ffffff" stroke="#121824" stroke-width="6.5" />
+
+              <!-- Royal Blue Top Hat (Proportional ~125px) -->
+              <path d="M -52 -38 L -42 -155 L 42 -155 L 52 -38 Z" fill="#1d4ed8" stroke="#121824" stroke-width="6.5" />
+              <!-- Hat Gold Band -->
+              <rect x="-50" y="-70" width="100" height="22" fill="#eab308" stroke="#121824" stroke-width="3" />
+              <!-- Gold Square Buckle -->
+              <rect x="-15" y="-73" width="30" height="28" rx="3.5" fill="#fef08a" stroke="#121824" stroke-width="3" />
+              <!-- Wide Curved Hat Brim -->
+              <ellipse cx="0" cy="-38" rx="98" ry="16" fill="#1d4ed8" stroke="#121824" stroke-width="6.5" />
+
+              <!-- Connected Chevron Laughing Eyes (< >) -->
+              <path d="M -35 -10 L -18 0 L -35 10" stroke="#121824" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              <path d="M 35 -10 L 18 0 L 35 10" stroke="#121824" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+              <!-- Eyebrows -->
+              <path d="M -38 -22 Q -24 -32 -10 -22" stroke="#121824" stroke-width="4.5" stroke-linecap="round" fill="none" />
+              <path d="M 10 -22 Q 24 -32 38 -22" stroke="#121824" stroke-width="4.5" stroke-linecap="round" fill="none" />
+
+              <!-- Thick Black Handlebar Mustache -->
+              <path d="M -42 16 Q -15 2 0 16 Q 15 2 42 16 C 32 28, 8 22, 0 28 C -8 22, -32 28, -42 16 Z" fill="#121824" stroke="#121824" stroke-width="3.5" />
+
+              <!-- Open Laughing Mouth with Teeth & Tongue -->
+              <path d="M -26 26 Q 0 58 26 26 Z" fill="#7f1d1d" stroke="#121824" stroke-width="4.5" />
+              <!-- White Teeth -->
+              <rect x="-19" y="26" width="38" height="8" fill="#ffffff" />
+              <!-- Pink Tongue -->
+              <circle cx="0" cy="42" r="10" fill="#ef4444" />
+            </g>
+
+            <!-- Laughing Tears -->
+            <g id="chief-tears">
+              <path d="M -70 -80 Q -84 -68 -75 -54 Q -66 -68 -70 -80" fill="#38bdf8" stroke="#121824" stroke-width="2.5" />
+              <path d="M 70 -80 Q 84 -68 75 -54 Q 66 -68 70 -80" fill="#38bdf8" stroke="#121824" stroke-width="2.5" />
+            </g>
+          </g>
+        </g>
+
+        <!-- ================= GUARD 2 (LEFT - Leaning Forward on Cobblestones) ================= -->
+        <g id="guard-left" transform="translate(340, 1440)">
+          <!-- Ground Shadow -->
+          <ellipse cx="0" cy="315" rx="70" ry="16" fill="rgba(0,0,0,0.45)" />
+
+          <!-- Leaning Stick Legs -->
+          <path d="M -12 160 L -22 310 M 12 160 L 22 310" stroke="#121824" stroke-width="6.5" stroke-linecap="round" />
+
+          <!-- Torso + Head (Tilted Forward ~8 deg) -->
+          <g id="guard-left-body" transform="rotate(8, 0, 150)">
+            <rect x="-46" y="0" width="92" height="160" rx="46" fill="#2563eb" stroke="#121824" stroke-width="6.5" />
+            <path d="M -32 10 Q 0 20 32 10" stroke="#eab308" stroke-width="7" stroke-linecap="round" fill="none" />
+            <rect x="-44" y="105" width="88" height="16" fill="#eab308" />
+            
+            <!-- Buttons down chest -->
+            <circle cx="0" cy="40" r="3.5" fill="#facc15" />
+            <circle cx="0" cy="62" r="3.5" fill="#facc15" />
+            <circle cx="0" cy="85" r="3.5" fill="#facc15" />
+
+            <!-- Hands clutching belly laughing -->
+            <path d="M -45 45 Q -62 80 -12 110" stroke="#121824" stroke-width="6.5" stroke-linecap="round" fill="none" />
+            <path d="M 45 45 Q 62 80 12 110" stroke="#121824" stroke-width="6.5" stroke-linecap="round" fill="none" />
+            <circle cx="0" cy="110" r="8.5" fill="#121824" />
+
+            <!-- Head (Directly overlapping neck) -->
+            <g id="guard-left-head" transform="translate(0, -52)">
+              <circle cx="0" cy="0" r="62" fill="#ffffff" stroke="#121824" stroke-width="6.5" />
+              
+              <!-- Royal Blue Slouch Hat -->
+              <path d="M -48 -32 C -48 -92 48 -92 48 -32 Z" fill="#1d4ed8" stroke="#121824" stroke-width="6.5" />
+              <rect x="-48" y="-50" width="96" height="18" fill="#eab308" />
+              <ellipse cx="0" cy="-32" rx="92" ry="14" fill="#1d4ed8" stroke="#121824" stroke-width="6.5" />
+
+              <!-- Chevron Eyes (< >) -->
+              <path d="M -30 -8 L -16 0 L -30 8" stroke="#121824" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              <path d="M 30 -8 L 16 0 L 30 8" stroke="#121824" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+              <!-- Eyebrows -->
+              <path d="M -34 -18 Q -20 -28 -8 -18" stroke="#121824" stroke-width="4" stroke-linecap="round" fill="none" />
+              <path d="M 8 -18 Q 20 -28 34 -18" stroke="#121824" stroke-width="4" stroke-linecap="round" fill="none" />
+
+              <!-- Mustache & Laugh Mouth -->
+              <path d="M -30 15 Q -8 5 0 15 Q 8 5 30 15" stroke="#121824" stroke-width="6" stroke-linecap="round" fill="none" />
+              <ellipse cx="0" cy="34" rx="17" ry="12" fill="#7f1d1d" stroke="#121824" stroke-width="4" />
+              <rect x="-12" y="26" width="24" height="5" fill="#ffffff" />
+            </g>
+          </g>
+        </g>
+
+        <!-- ================= GUARD 3 (RIGHT - Slouch Hat, Chuckling) ================= -->
+        <g id="guard-right" transform="translate(860, 1440)">
+          <ellipse cx="0" cy="315" rx="65" ry="16" fill="rgba(0,0,0,0.45)" />
+          <path d="M -12 160 L -12 310 M 12 160 L 12 310" stroke="#121824" stroke-width="6.5" stroke-linecap="round" />
+
+          <g id="guard-right-body">
+            <rect x="-44" y="0" width="88" height="155" rx="44" fill="#2563eb" stroke="#121824" stroke-width="6.5" />
+            <path d="M -28 10 Q 0 18 28 10" stroke="#eab308" stroke-width="7" stroke-linecap="round" fill="none" />
+            <rect x="-42" y="105" width="84" height="16" fill="#eab308" />
+
+            <!-- Head -->
+            <g id="guard-right-head" transform="translate(0, -52)">
+              <circle cx="0" cy="0" r="60" fill="#ffffff" stroke="#121824" stroke-width="6.5" />
+              <path d="M -46 -32 C -46 -88 46 -88 46 -32 Z" fill="#1d4ed8" stroke="#121824" stroke-width="6.5" />
+              <rect x="-46" y="-48" width="92" height="16" fill="#eab308" />
+              <ellipse cx="0" cy="-32" rx="88" ry="14" fill="#1d4ed8" stroke="#121824" stroke-width="6.5" />
+
+              <path d="M -28 -8 L -14 0 L -28 8" stroke="#121824" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              <path d="M 28 -8 L 14 0 L 28 8" stroke="#121824" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+              <path d="M -18 24 Q 0 48 18 24 Z" fill="#7f1d1d" stroke="#121824" stroke-width="4" />
+            </g>
+          </g>
+        </g>
+
+      </svg>
+    </div>
+  </div>
+
+  <!-- ================= SUBTITLES OVERLAY (COMICRON EXACT) ================= -->
+  <div id="caption-box">
+    <div id="caption-display" class="caption-phrase"></div>
+  </div>
+
+</div>
+
+<script>
+  // Timed word dictionary from Whisper
+  const WORD_TIMINGS = [
+    { word: "Every", start: 0.5, end: 0.8 },
+    { word: "night,", start: 0.8, end: 1.04 },
+    { word: "a", start: 1.4, end: 1.5 },
+    { word: "thief", start: 1.5, end: 1.7 },
+    { word: "broke", start: 1.7, end: 2.02 },
+    { word: "into", start: 2.02, end: 2.32 },
+    { word: "a", start: 2.32, end: 2.5 },
+    { word: "shoe", start: 2.5, end: 2.72 },
+    { word: "shop", start: 2.72, end: 3.15 },
+
+    { word: "and", start: 3.15, end: 3.4 },
+    { word: "stole", start: 3.4, end: 3.65 },
+    { word: "only", start: 3.65, end: 3.9 },
+    { word: "the", start: 3.9, end: 4.1 },
+    { word: "left", start: 4.1, end: 4.45 },
+    { word: "shoes.", start: 4.45, end: 5.2 },
+
+    { word: "The", start: 5.34, end: 5.6 },
+    { word: "guards", start: 5.6, end: 5.88 },
+    { word: "laughed:", start: 5.88, end: 6.6 },
+
+    { word: "We're", start: 6.76, end: 6.96 },
+    { word: "hunting", start: 6.96, end: 7.2 },
+    { word: "a", start: 7.2, end: 7.4 },
+    { word: "man", start: 7.4, end: 7.58 },
+    { word: "with", start: 7.58, end: 7.8 },
+    { word: "one", start: 7.8, end: 8.04 },
+    { word: "leg!", start: 8.04, end: 9.8 }
+  ];
+
+  // Group phrases
+  const PHRASES = [
+    { start: 0.4, end: 3.15, text: ["Every", "night,", "a", "thief", "broke", "into", "a", "shoe", "shop"] },
+    { start: 3.15, end: 5.25, text: ["and", "stole", "only", "the", "left", "shoes."] },
+    { start: 5.3, end: 6.65, text: ["The", "guards", "laughed:"] },
+    { start: 6.7, end: 9.9, text: ["\"We're", "hunting", "a", "man", "with", "one", "leg!\""] }
+  ];
+
+  // Master GSAP Timeline
+  const tl = gsap.timeline({ paused: true });
+
+  // SCENE 1 (0.0s - 3.2s): Smooth subtle camera push-in + Thief hanging sway
+  tl.to("#camera1", { scale: 1.08, y: -20, duration: 3.2, ease: "none" }, 0);
+  tl.to("#thief-character", { y: "+=45", duration: 3.2, ease: "power1.out" }, 0);
+  tl.to("#thief-character", { rotation: 4, repeat: 5, yoyo: true, duration: 0.32, ease: "sine.inOut", transformOrigin: "0px -80px" }, 0);
+  tl.to("#thief-leg-l", { rotation: 8, repeat: 5, yoyo: true, duration: 0.32, ease: "sine.inOut", transformOrigin: "-18px 140px" }, 0);
+  tl.to("#thief-leg-r", { rotation: -10, repeat: 5, yoyo: true, duration: 0.32, ease: "sine.inOut", transformOrigin: "18px 140px" }, 0);
+
+  // SCENE 2 (3.2s - 5.3s): Punch-cut to Shop Window + Corvin Bewildered
+  tl.to("#camera2", { scale: 1.08, y: -20, duration: 2.1, ease: "none" }, 3.2);
+  tl.to("#corvin-character", { y: "-=8", repeat: 3, yoyo: true, duration: 0.35, ease: "sine.inOut" }, 3.2);
+  tl.to("#corvin-sign", { rotation: 4, repeat: 4, yoyo: true, duration: 0.25, transformOrigin: "0px 70px" }, 3.2);
+
+  // SCENE 3 (5.3s - 10.0s): Punch-cut to Laughing Guards (Hierarchical Rig - NO DISCONNECTION!)
+  tl.to("#camera3", { scale: 1.10, y: -25, duration: 4.7, ease: "none" }, 5.3);
+
+  // Chief Guard: ENTIRE BODY AND HEAD BOUNCE TOGETHER!
+  tl.to("#chief-body", { y: "-=14", repeat: 14, yoyo: true, duration: 0.16, ease: "sine.inOut" }, 5.3);
+  // Head tilts slightly on neck pivot without EVER detaching!
+  tl.to("#chief-head", { rotation: -6, repeat: 14, yoyo: true, duration: 0.16, ease: "sine.inOut", transformOrigin: "0px 0px" }, 5.3);
+  tl.to("#chief-tears", { opacity: 0.2, repeat: 8, yoyo: true, duration: 0.25 }, 5.3);
+
+  // Guard Left Leaning Laugh: Body tilts playfully
+  tl.to("#guard-left-body", { rotation: 14, repeat: 12, yoyo: true, duration: 0.18, ease: "sine.inOut", transformOrigin: "0px 150px" }, 5.35);
+
+  // Guard Right Giggling
+  tl.to("#guard-right-body", { y: "-=10", repeat: 14, yoyo: true, duration: 0.15, ease: "sine.inOut" }, 5.4);
+
+  // Global function for deterministic frame seeking
+  window.seekToTime = function(t) {
+    tl.time(t);
+
+    const s1 = document.getElementById("scene1");
+    const s2 = document.getElementById("scene2");
+    const s3 = document.getElementById("scene3");
+
+    if (t < 3.2) {
+      s1.classList.add("active");
+      s2.classList.remove("active");
+      s3.classList.remove("active");
+    } else if (t < 5.3) {
+      s1.classList.remove("active");
+      s2.classList.add("active");
+      s3.classList.remove("active");
+    } else {
+      s1.classList.remove("active");
+      s2.classList.remove("active");
+      s3.classList.add("active");
+    }
+
+    // Subtitle phrase & word highlights
+    const display = document.getElementById("caption-display");
+    let activePhrase = PHRASES.find(p => t >= p.start && t < p.end);
+    
+    if (activePhrase) {
+      let html = "";
+      for (let w of activePhrase.text) {
+        const cleanW = w.replace(/[^a-zA-Z]/g, "").toLowerCase();
+        const timed = WORD_TIMINGS.find(item => item.word.toLowerCase().includes(cleanW));
+        const isActive = timed && t >= timed.start && t <= timed.end;
+        html += `<span class="word-span ${isActive ? 'active' : ''}">${w}</span>`;
+      }
+      display.innerHTML = html;
+    } else {
+      display.innerHTML = "";
+    }
+  };
+
+  window.seekToTime(0);
+</script>
+</body>
+</html>

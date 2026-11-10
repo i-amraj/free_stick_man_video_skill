@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Realistic 3D Human Pose Verification</title>
+  <script src="lib/three.min.js"></script>
+  <script src="lib/meshopt_decoder.js"></script>
+  <script src="lib/GLTFLoader.js"></script>
+  <style>
+    body { margin: 0; background: #060913; overflow: hidden; }
+    canvas { width: 1080px; height: 1920px; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  const canvas = document.getElementById('c');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x060913);
+
+  const camera = new THREE.PerspectiveCamera(42, 1080 / 1920, 0.1, 50);
+  camera.position.set(0, 1.35, 2.6);
+  camera.lookAt(0, 1.15, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(1080, 1920);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+
+  // Mystery Studio Lighting
+  const moonLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
+  moonLight.position.set(2, 4, 3);
+  moonLight.castShadow = true;
+  scene.add(moonLight);
+
+  const warmRim = new THREE.DirectionalLight(0xf59e0b, 1.6);
+  warmRim.position.set(-2.5, 3, -2);
+  scene.add(warmRim);
+
+  const ambient = new THREE.AmbientLight(0x0f172a, 1.2);
+  scene.add(ambient);
+
+  // Floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 10),
+    new THREE.MeshStandardMaterial({ color: 0x0a101d, roughness: 0.4 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const loader = new THREE.GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  window.bones = {};
+  window.model = null;
+
+  // 3D Smartphone Mesh
+  const phoneGroup = new THREE.Group();
+  const phoneBody = new THREE.Mesh(
+    new THREE.BoxGeometry(0.075, 0.15, 0.009),
+    new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.15, metalness: 0.9 })
+  );
+  phoneGroup.add(phoneBody);
+
+  const phoneScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.07, 0.142),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+  );
+  phoneScreen.position.z = 0.005;
+  phoneGroup.add(phoneScreen);
+
+  loader.load('models/real_human_male.glb', (gltf) => {
+    const model = gltf.scene;
+    window.model = model;
+    model.scale.set(1, 1, 1);
+    model.position.set(0, 0, 0);
+
+    model.traverse((child) => {
+      if (child.isSkinnedMesh) {
+        child.frustumCulled = false;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          child.material.roughness = 0.65;
+          child.material.metalness = 0.05;
+        }
+      }
+      if (child.isBone) {
+        window.bones[child.name] = child;
+      }
+    });
+
+    scene.add(model);
+    const b = window.bones;
+
+    // Natural Pose (Drop arms from T-pose)
+    // Left arm down
+    if (b.LeftArm) {
+      b.LeftArm.rotation.z = 1.35;
+      b.LeftArm.rotation.x = 0.15;
+    }
+    if (b.LeftForeArm) {
+      b.LeftForeArm.rotation.z = 0.2;
+    }
+
+    // Right arm holding phone to ear
+    if (b.RightArm && b.RightForeArm) {
+      // Rotate arm up and toward head
+      b.RightArm.rotation.z = -1.1;
+      b.RightArm.rotation.x = 0.6;
+      b.RightArm.rotation.y = -0.3;
+
+      b.RightForeArm.rotation.z = -1.55;
+      b.RightForeArm.rotation.y = 0.85;
+      b.RightForeArm.rotation.x = 0.2;
+    }
+
+    // Attach phone to RightHand bone
+    if (b.RightHand) {
+      phoneGroup.position.set(0.03, 0.08, 0.02);
+      phoneGroup.rotation.set(0, 0.3, 0);
+      b.RightHand.add(phoneGroup);
+    }
+
+    // Head tilt towards phone
+    if (b.Head) {
+      b.Head.rotation.z = -0.15;
+      b.Head.rotation.y = 0.1;
+    }
+
+    // Spine subtle curve
+    if (b.Spine) {
+      b.Spine.rotation.x = 0.05;
+    }
+
+    window.poseReady = true;
+    console.log("Phone call pose verified!");
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>
+

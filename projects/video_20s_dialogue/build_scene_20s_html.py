@@ -1,0 +1,440 @@
+"""
+build_scene_20s_html.py
+Implements the definitive "Camera Kabhi Rukta Nahi" (Continuous Camera Movement) Doctrine:
+1. Persistent Sub-Current (Unbroken drift 0.0s -> 20.0s, zero static frames)
+2. Organic Handheld Micro-Sway (gentle breathing rotation)
+3. Causal Acceleration Punch-in on shock reveal (1.72x) + continuous creeping zoom
+4. Multiplane Parallax across layer-bg, layer-mid, layer-actors
+5. Custom face styles: Detective Gary (Square chiseled jaw, mustache, trench coat) & Sneaky Thief (Pointed jaw, crown, sunglasses)
+6. Subtitle karaoke sync with gold highlight
+"""
+
+import json
+from pathlib import Path
+
+PROJ = Path(r"c:\Users\iamra\OneDrive\Desktop\stick_man\projects\video_20s_dialogue")
+sub_chunks = json.load(open(PROJ / "subtitle_chunks_20s.json", encoding="utf-8"))
+words_all = json.load(open(PROJ / "word_timings_20s.json", encoding="utf-8"))
+
+gary_speech_1 = [
+    {"w": w["word"], "s": w["start"], "e": w["end"], "stress": ("Gary" in w["word"] or "Nobody" in w["word"] or "Aha" in w["word"] or "treasure" in w["word"])}
+    for w in words_all if 5.5 <= w["start"] <= 10.2
+]
+
+gary_speech_2 = [
+    {"w": w["word"], "s": w["start"], "e": w["end"], "stress": ("Wait" in w["word"] or "dirty" in w["word"] or "shoe" in w["word"])}
+    for w in words_all if 11.4 <= w["start"] <= 15.0
+]
+
+sub_chunks_json = json.dumps(sub_chunks)
+gary_speech_1_json = json.dumps(gary_speech_1)
+gary_speech_2_json = json.dumps(gary_speech_2)
+
+html_code = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920, initial-scale=1.0">
+<title>Detective Gary - Continuous Camera Motion Master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; user-select: none; }}
+  body {{
+    background: #000;
+    width: 1080px; height: 1920px;
+    overflow: hidden;
+    display: flex; justify-content: center; align-items: center;
+    font-family: 'Montserrat', sans-serif;
+  }}
+  #viewport {{
+    width: 1080px; height: 1920px;
+    position: relative; overflow: hidden;
+    background: #070913;
+  }}
+  .camera-rig {{
+    width: 100%; height: 100%;
+    position: absolute; top: 0; left: 0;
+    transform-origin: 540px 1150px;
+  }}
+  svg.stage {{
+    width: 1080px; height: 1920px;
+    position: absolute; top: 0; left: 0;
+  }}
+  .vignette-overlay {{
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.72) 100%);
+    pointer-events: none; z-index: 80;
+  }}
+  .channel-badge {{
+    position: absolute; top: 70px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px; font-weight: 900;
+    letter-spacing: 5px; color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase; z-index: 90;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.85);
+    white-space: nowrap;
+  }}
+  #caption-box {{
+    position: absolute; bottom: 170px;
+    left: 40px; right: 40px;
+    z-index: 100; text-align: center;
+    pointer-events: none;
+  }}
+  .caption-phrase {{
+    font-family: 'Montserrat', sans-serif;
+    font-size: 56px; font-weight: 900;
+    color: #ffffff; text-transform: uppercase;
+    letter-spacing: 1.5px; line-height: 1.25;
+    text-shadow: 
+      0 4px 14px rgba(0,0,0,0.95), 0 2px 4px #000,
+      -2px -2px 0 #000,  2px -2px 0 #000,
+      -2px  2px 0 #000,  2px  2px 0 #000;
+    display: flex; flex-wrap: wrap;
+    justify-content: center; align-items: center;
+    gap: 8px 16px;
+  }}
+  .word-span {{
+    display: inline-block; margin: 0 8px;
+    transition: transform 0.08s ease, color 0.08s ease;
+    white-space: nowrap;
+  }}
+  .word-span.active {{
+    color: #FFD700; transform: scale(1.18);
+    text-shadow: 
+      0 0 25px rgba(255, 215, 0, 0.8),
+      0 4px 14px rgba(0,0,0,0.95),
+      -2px -2px 0 #000, 2px -2px 0 #000,
+      -2px  2px 0 #000, 2px  2px 0 #000;
+  }}
+</style>
+<script src="gsap.min.js"></script>
+<script src="rig.js"></script>
+<script src="props.js"></script>
+</head>
+<body>
+
+<div id="viewport">
+  <div class="channel-badge">GROWKAZ • DETECTIVE GARY & THE STOLEN SHOE</div>
+  <div class="vignette-overlay"></div>
+
+  <div id="camera" class="camera-rig">
+    <svg class="stage" viewBox="0 0 1080 1920">
+      <defs>
+        <!-- Warehouse wall gradient -->
+        <linearGradient id="vaultWall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#080c18"/>
+          <stop offset="50%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#090d19"/>
+        </linearGradient>
+        <!-- Floor gradient -->
+        <linearGradient id="vaultFloor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="25%" stop-color="#131a26"/>
+          <stop offset="100%" stop-color="#0a0d15"/>
+        </linearGradient>
+        <!-- Moonlight cone -->
+        <linearGradient id="moonBeam" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.25"/>
+          <stop offset="55%" stop-color="#3b82f6" stop-opacity="0.10"/>
+          <stop offset="100%" stop-color="#1e3a8a" stop-opacity="0"/>
+        </linearGradient>
+        <!-- Stink green gas gradient for old shoe -->
+        <radialGradient id="stinkGas" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#84cc16" stop-opacity="0.8"/>
+          <stop offset="50%" stop-color="#65a30d" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#4d7c0f" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- ── BACKGROUND LAYERS ── -->
+      <!-- Wall -->
+      <rect width="1080" height="1520" fill="url(#vaultWall)"/>
+      <!-- Stone Skirting Line -->
+      <rect x="0" y="1500" width="1080" height="20" fill="#1e293b" stroke="#0f172a" stroke-width="2"/>
+      <!-- Floor -->
+      <rect x="0" y="1520" width="1080" height="400" fill="url(#vaultFloor)"/>
+
+      <!-- Moonlight Beam from Window -->
+      <polygon points="120,400 380,400 760,1520 20,1520" fill="url(#moonBeam)"/>
+
+      <!-- SVG Parallax Environment Groups -->
+      <g id="layer-bg"></g>
+      <g id="layer-mid"></g>
+      <g id="layer-actors"></g>
+      <g id="layer-fore"></g>
+    </svg>
+  </div>
+
+  <div id="caption-box"></div>
+</div>
+
+<script>
+const svg = document.querySelector('svg.stage');
+const lBg = document.getElementById('layer-bg');
+const lMid = document.getElementById('layer-mid');
+const lActors = document.getElementById('layer-actors');
+const lFore = document.getElementById('layer-fore');
+
+const FLOOR = 1520;
+
+// ── ENVIRONMENT PROPS ──
+GK.P.window(lBg, {{ x: 260, y: 560, s: 1.15 }});
+GK.P.clock(lBg, {{ x: 540, y: 440, r: 58 }});
+GK.P.lamp(lBg, {{ x: 970, y: FLOOR, s: 1.15 }});
+
+// Wooden crate on right ("FOR FIREWOOD 🪵")
+const crateG = GK.el('g', {{ transform: 'translate(880, ' + (FLOOR - 100) + ')' }}, lMid);
+GK.P.box(crateG, {{ w: 160, h: 100, d: 25, c: '#78350f', stroke: '#121824', sw: 4 }});
+GK.el('rect', {{ x: -75, y: -45, width: 150, height: 28, rx: 4, fill: '#fef3c7', stroke: '#451a03', 'stroke-width': 3 }}, crateG);
+const crateText = GK.el('text', {{
+  x: 0, y: -26, 'text-anchor': 'middle',
+  'font-family': "'Montserrat', sans-serif", 'font-weight': '900', 'font-size': '14', fill: '#78350f'
+}}, crateG);
+crateText.textContent = "FOR FIREWOOD 🪵";
+
+// The Golden Treasure Chest at x=640
+const chestG = GK.el('g', {{ transform: 'translate(640, ' + FLOOR + ')' }}, lMid);
+const chest = GK.P.chest(chestG, {{ x: 0, y: 0, s: 1.25 }});
+GK.P.coins(chestG, {{ x: -105, y: 0, n: 7, s: 1.15 }});
+
+// The Stinky Shoe inside the chest
+const stinkyShoeG = GK.el('g', {{ id: 'stinky-shoe', transform: 'translate(640, ' + (FLOOR - 60) + ') scale(0)', opacity: 0 }}, lFore);
+GK.el('circle', {{ cx: -15, cy: -30, r: 42, fill: 'url(#stinkGas)' }}, stinkyShoeG);
+GK.el('circle', {{ cx: 20, cy: -48, r: 38, fill: 'url(#stinkGas)' }}, stinkyShoeG);
+GK.el('ellipse', {{ cx: 0, cy: 10, rx: 36, ry: 11, fill: '#1c1917', stroke: '#121824', 'stroke-width': 3.5 }}, stinkyShoeG);
+GK.el('path', {{ d: 'M -26 8 C -16 -18, 5 -12, 16 2 C 30 4, 34 11, 26 13 Z', fill: '#3f220d', stroke: '#121824', 'stroke-width': 3.5 }}, stinkyShoeG);
+GK.el('line', {{ x1: -9, y1: -2, x2: 7, y2: -2, stroke: '#ef4444', 'stroke-width': 2.8 }}, stinkyShoeG);
+const stinkText = GK.el('text', {{
+  x: 0, y: -68, 'text-anchor': 'middle',
+  'font-family': "'Montserrat', sans-serif", 'font-weight': '900', 'font-size': '19', fill: '#84cc16'
+}}, stinkyShoeG);
+stinkText.textContent = "OLD SHOE 🦨";
+
+// ── CHARACTERS ──
+
+// 1. Detective Gary: SQUARE CHISELED JAW, DETECTIVE MUSTACHE, TRENCH COAT
+const gary = GK.createCharacter(lActors, {{
+  id: 'gary',
+  view: 'side',
+  style: 'toon',
+  headShape: 'square',   // Strong chiseled jaw!
+  beard: 'mustache',     // Classic detective mustache!
+  jacket: 'trench',      // Double-breasted trench coat with gold buttons!
+  jacketColor: '#1e293b',
+  hairStyle: 'short',
+  hair: '#1e1b18',
+  skin: '#e2a76f',       // Warm weathered detective tan
+  shirt: '#2563eb',      // Royal blue under trench
+  pants: '#0f172a',      // Charcoal pants
+  shoe: '#18181b'
+}});
+gary.place(-160, FLOOR);
+GK.costume.cap(gary, '#1e293b');
+GK.costume.tie(gary, '#b91c1c');
+
+// 2. Sneaky Thief: POINTED SLY JAW, PALE CUNNING SKIN, EMERALD HOODIE
+const thiefWrapper = GK.el('g', {{ id: 'thief-wrapper', style: 'opacity: 0; display: none;' }}, lActors);
+const thief = GK.createCharacter(thiefWrapper, {{
+  id: 'thief',
+  view: 'front',
+  style: 'toon',
+  headShape: 'pointed',  // Sharp sly chin!
+  hairStyle: 'spiky',
+  hair: '#0f172a',
+  skin: '#fef08a',       // Pale cunning complexion
+  shirt: '#15803d',      // Emerald thief shirt
+  pants: '#022c22',
+  shoe: '#000000'
+}});
+thief.place(880, FLOOR, 0.95);
+GK.costume.glasses(thief, '#000000');
+GK.costume.crown(thief, '#facc15');
+
+// ── SUBTITLES DATA & SYNC ──
+const SUBTITLE_CHUNKS = {sub_chunks_json};
+const GARY_SPEECH_1 = {gary_speech_1_json};
+const GARY_SPEECH_2 = {gary_speech_2_json};
+
+function updateSubtitles(t) {{
+  const box = document.getElementById("caption-box");
+  const activeChunk = SUBTITLE_CHUNKS.find(c => t >= c.start && t < c.end);
+  if (!activeChunk) {{
+    box.innerHTML = "";
+    return;
+  }}
+  let html = '<div class="caption-phrase">';
+  activeChunk.words.forEach(w => {{
+    const isActive = (t >= w.start && t < w.end);
+    html += `<span class="word-span ${{isActive ? 'active' : ''}}">${{w.word}}</span>`;
+  }});
+  html += '</div>';
+  box.innerHTML = html;
+}}
+
+// ── MASTER GSAP TIMELINE ──
+const masterTimeline = gsap.timeline({{ paused: true }});
+
+// =========================================================================
+// 🎥 THE CORE CREATIVE LAW: "CAMERA KABHI RUKTA NAHI" (CONTINUOUS MOTION)
+// =========================================================================
+
+// 1. PRIMARY UNBROKEN CAMERA PATHWAY (0.0s -> 20.0s)
+// The camera is in continuous mathematical motion across every single millisecond.
+
+// Phase 1 (0.0s -> 5.5s): Smooth tracking push-in as Gary enters
+masterTimeline.fromTo("#camera",
+  {{ scale: 1.35, x: -60, y: -80 }},
+  {{ scale: 1.44, x: -115, y: -105, duration: 5.5, ease: "sine.inOut" }},
+  0
+);
+
+// Phase 2 (5.5s -> 11.0s): Continuing slow drift & slight diagonal tilt as Gary speaks
+masterTimeline.to("#camera", {{
+  scale: 1.52, x: -155, y: -125, duration: 5.5, ease: "sine.inOut"
+}}, 5.5);
+
+// Phase 3A (11.0s -> 11.8s): Gary steps to chest - camera follows right
+masterTimeline.to("#camera", {{
+  scale: 1.55, x: -190, y: -135, duration: 0.8, ease: "sine.inOut"
+}}, 11.0);
+
+// Phase 3B (11.8s -> 12.4s): CAUSAL ACCELERATION PUNCH-IN on shock shoe reveal!
+masterTimeline.to("#camera", {{
+  scale: 1.72, x: -265, y: -175, duration: 0.6, ease: "power3.out"
+}}, 11.8);
+
+// Phase 3C (12.4s -> 15.5s): CONTINUOUS SLOW CREEP during shock hold (NO STATIC FRAMES!)
+masterTimeline.to("#camera", {{
+  scale: 1.77, x: -285, y: -190, duration: 3.1, ease: "none"
+}}, 12.4);
+
+// Phase 4A (15.5s -> 17.5s): Fluid pull-back reveal when thief appears
+masterTimeline.to("#camera", {{
+  scale: 1.38, x: -120, y: -85, duration: 2.0, ease: "power2.inOut"
+}}, 15.5);
+
+// Phase 4B (17.5s -> 20.0s): Unbroken final push-in on dancing thief and facepalm Gary
+masterTimeline.to("#camera", {{
+  scale: 1.44, x: -140, y: -95, duration: 2.5, ease: "sine.inOut"
+}}, 17.5);
+
+// 2. ORGANIC HANDHELD MICRO-SWAY (Continuous human breathing feel)
+// Adds subtle, natural camera sway from 0.0s to 20.0s
+masterTimeline.fromTo("#camera",
+  {{ rotation: -0.35 }},
+  {{ rotation: 0.35, duration: 2.5, repeat: 7, yoyo: true, ease: "sine.inOut" }},
+  0
+);
+
+// 3. MULTIPLANE PARALLAX (Layered depth in 2D)
+// Background moves slower at 0.35x speed
+masterTimeline.fromTo("#layer-bg",
+  {{ x: 0, y: 0 }},
+  {{ x: 35, y: 15, duration: 20.0, ease: "none" }},
+  0
+);
+// Midground moves at 0.65x speed
+masterTimeline.fromTo("#layer-mid",
+  {{ x: 0, y: 0 }},
+  {{ x: -25, y: -8, duration: 20.0, ease: "none" }},
+  0
+);
+
+// =========================================================================
+// 🎭 CHARACTER ANIMATION & STORY TIMELINE
+// =========================================================================
+
+// BEAT 1 (0.0s -> 5.5s): Gary walks in
+let t = gary.walk(masterTimeline, 0.2, {{ toX: 420 }});
+gary.autoBlink(masterTimeline, 0, 20, 5);
+gary.breathe(masterTimeline, 4.0, 11.0);
+
+// Gary stops, smiles at chest
+gary.pose(masterTimeline, t, 'idle', 0.25);
+gary.expr(masterTimeline, t + 0.1, 'happy', 0.3);
+
+// BEAT 2 (5.5s -> 11.0s): Gary points and speaks proud dialogue
+gary.pose(masterTimeline, 5.5, 'pointR', 0.35, 'back.out(1.4)');
+gary.hand(masterTimeline, 5.5, 'R', 'point');
+gary.expr(masterTimeline, 5.5, 'smug', 0.25);
+
+// Word-synced lip-sync visemes!
+gary.talk(masterTimeline, GARY_SPEECH_1, {{ base: 'pointR', arms: true, gestures: true }});
+
+// Boastful hand gestures
+for (let i = 0; i < 4; i++) {{
+  gary.part(masterTimeline, 7.8 + i * 0.25, {{ wrR: i % 2 ? 22 : -15 }}, 0.25, 'sine.inOut');
+}}
+
+// BEAT 3 (11.0s -> 15.5s): Gary opens chest -> shock reveal!
+t = gary.walk(masterTimeline, 10.4, {{ toX: 580 }});
+gary.pose(masterTimeline, t, 'crouch', 0.35);
+
+// Open chest lid
+if (chest.lid) {{
+  GK.tw(masterTimeline, chest.lid, {{ rot: -85 }}, 0.45, 11.3);
+}}
+
+// Reveal Stinky Shoe
+masterTimeline.to("#stinky-shoe", {{
+  scale: 1.25, opacity: 1, y: FLOOR - 95, duration: 0.5, ease: "back.out(1.8)"
+}}, 11.4);
+
+// Gary RECOILS IN COMPLETE SHOCK!
+gary.pose(masterTimeline, 11.6, 'shock', 0.25, 'back.out(1.6)');
+gary.expr(masterTimeline, 11.6, 'surprised', 0.2);
+gary.hand(masterTimeline, 11.6, 'R', 'open');
+gary.hand(masterTimeline, 11.6, 'L', 'open');
+
+// Gary shocked speech with lip-sync!
+gary.talk(masterTimeline, GARY_SPEECH_2, {{ base: 'shock', arms: true, gestures: true }});
+
+// BEAT 4 (15.5s -> 20.0s): Sneaky Thief jumps up & dances disco, Gary facepalms!
+masterTimeline.call(() => {{
+  const wrap = document.getElementById("thief-wrapper");
+  wrap.style.display = "block";
+}}, null, 15.4);
+
+masterTimeline.fromTo("#thief-wrapper",
+  {{ y: 80, opacity: 0 }},
+  {{ y: -100, opacity: 1, duration: 0.5, ease: "back.out(1.8)" }},
+  15.5
+);
+thief.expr(masterTimeline, 15.7, 'laugh', 0.2);
+thief.hand(masterTimeline, 15.7, 'R', 'peace');
+thief.hand(masterTimeline, 15.7, 'L', 'peace');
+
+// Thief victory disco dance!
+thief.dance(masterTimeline, 16.0, 'disco', 8, 120);
+
+// Gary facepalms in despair
+gary.pose(masterTimeline, 16.2, 'facepalm', 0.45, 'power2.out');
+gary.expr(masterTimeline, 16.2, 'sad', 0.3);
+
+// Window seek function for deterministic renderers
+window.seekToTime = function(timeSec) {{
+  const wrap = document.getElementById("thief-wrapper");
+  if (timeSec < 15.4) {{
+    wrap.style.display = "none";
+  }} else {{
+    wrap.style.display = "block";
+  }}
+  masterTimeline.seek(timeSec, false);
+  updateSubtitles(timeSec);
+}};
+
+// Initialize at t=0
+window.seekToTime(0);
+</script>
+</body>
+</html>
+'''
+
+with open(PROJ / "scene_20s.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+
+print("Generated scene_20s.html with continuous camera movement doctrine! Length:", len(html_code))

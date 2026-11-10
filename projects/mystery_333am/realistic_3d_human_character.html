@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GrowKaz Studio — Realistic 3D Human Character Rig & Code</title>
+  <script src="scene/lib/three.min.js"></script>
+  <script src="scene/lib/meshopt_decoder.js"></script>
+  <script src="scene/lib/GLTFLoader.js"></script>
+  <script src="scene/lib/gsap.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #030712;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+    #viewport {
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #controls-panel {
+      width: 360px;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      border-left: 1px solid rgba(56, 189, 248, 0.25);
+      backdrop-filter: blur(16px);
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+    }
+    h2 {
+      font-size: 20px;
+      color: #38bdf8;
+      margin-bottom: 4px;
+    }
+    p.sub {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    button {
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      color: #f8fafc;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    button:hover {
+      background: #38bdf8;
+      color: #020617;
+      transform: translateY(-1px);
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border-radius: 12px;
+      margin-left: 6px;
+    }
+    .info-card {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .info-card code {
+      color: #38bdf8;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+<div id="viewport">
+  <canvas id="c"></canvas>
+</div>
+
+<div id="controls-panel">
+  <div>
+    <h2>Realistic 3D Human Character</h2>
+    <p class="sub">Complete 99-Bone Rigged Humanoid with PBR Shading, Hair, Clothes & Doppelganger</p>
+  </div>
+
+  <div class="info-card">
+    <strong>Model Specs:</strong><br>
+    • Source: <code>scene/models/real_human_male.glb</code><br>
+    • Bones: 99 anatomical joints<br>
+    • Shading: PBR Standard Material<br>
+    • Scale: 1:1 Real Human Proportions
+  </div>
+
+  <div class="btn-group">
+    <strong style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Test Animation Presets:</strong>
+    <button onclick="playPose('idle')">1. Natural Idle Pose <span class="badge">Breathing</span></button>
+    <button onclick="playPose('phone_reach')">2. Reach for Phone <span class="badge">Right Arm</span></button>
+    <button onclick="playPose('phone_ear')">3. Phone to Ear <span class="badge">Head Tilt</span></button>
+    <button onclick="playPose('phone_down')">4. Inspect Outgoing Log <span class="badge">Look Down</span></button>
+    <button onclick="playPose('door_knock')">5. Door Knock Flinch <span class="badge">Head Snap</span></button>
+    <button onclick="playPose('walk')">6. Walk / Tiptoe Cycle <span class="badge">Leg Strides</span></button>
+    <button onclick="playPose('inspect_foot')">7. Compare Footprint <span class="badge">Foot Lift</span></button>
+    <button onclick="playPose('horror_climax')">8. Doppelganger Climax <span class="badge">Red Eyes</span></button>
+  </div>
+
+  <div class="info-card">
+    <strong>Controls:</strong><br>
+    Drag mouse to orbit camera around character. Scroll to zoom in/out.
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('c');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x060913);
+
+  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 50);
+  camera.position.set(0, 1.4, 2.8);
+  camera.lookAt(0, 1.15, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(window.innerWidth - 360, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+
+  window.addEventListener('resize', () => {
+    camera.aspect = (window.innerWidth - 360) / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth - 360, window.innerHeight);
+  });
+
+  // Lighting
+  const moonLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
+  moonLight.position.set(2, 4, 3);
+  moonLight.castShadow = true;
+  scene.add(moonLight);
+
+  const warmRim = new THREE.DirectionalLight(0xf59e0b, 1.5);
+  warmRim.position.set(-2.5, 3, -2);
+  scene.add(warmRim);
+
+  const redBacklight = new THREE.PointLight(0xef4444, 0, 6);
+  redBacklight.position.set(0.08, 1.8, -1.2);
+  scene.add(redBacklight);
+
+  scene.add(new THREE.AmbientLight(0x0f172a, 1.2));
+
+  // Floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(12, 12),
+    new THREE.MeshStandardMaterial({ color: 0x0a101d, roughness: 0.4 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Phone Mesh
+  const phone = new THREE.Mesh(
+    new THREE.BoxGeometry(0.075, 0.15, 0.009),
+    new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.2, metalness: 0.85 })
+  );
+  const phoneScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.07, 0.142),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+  );
+  phoneScreen.position.z = 0.005;
+  phone.add(phoneScreen);
+
+  const loader = new THREE.GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  window.bones = {};
+  window.model = null;
+  window.shadowClone = null;
+  window.shadowBones = {};
+
+  const state = {
+    rArmLift: 0,
+    rArmReach: 0,
+    rForeArmBend: 0,
+    lArmSwing: 0,
+    headPitch: 0,
+    headYaw: 0,
+    headRoll: 0,
+    isWalking: 0,
+    walkCycle: 0,
+    footInspect: 0,
+    shiver: 0,
+    breathRate: 2.2,
+    breathAmp: 0.02,
+    shadowReach: 0,
+    time: 0
+  };
+
+  loader.load('scene/models/real_human_male.glb', (gltf) => {
+    const model = gltf.scene;
+    window.model = model;
+    model.scale.set(1, 1, 1);
+    model.position.set(0, 0, 0);
+
+    model.traverse((child) => {
+      if (child.isSkinnedMesh) {
+        child.frustumCulled = false;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          child.material.skinning = true;
+          child.material.roughness = 0.65;
+          child.material.metalness = 0.05;
+        }
+      }
+      if (child.isBone) {
+        child.userData.restX = child.rotation.x;
+        child.userData.restY = child.rotation.y;
+        child.userData.restZ = child.rotation.z;
+        window.bones[child.name] = child;
+      }
+    });
+
+    scene.add(model);
+
+    if (window.bones.RightHand) {
+      phone.position.set(0.04, 0.08, 0.02);
+      window.bones.RightHand.add(phone);
+    }
+
+    // Shadow Doppelganger
+    loader.load('scene/models/real_human_male.glb', (cloneGltf) => {
+      const clone = cloneGltf.scene;
+      window.shadowClone = clone;
+      clone.scale.set(1.08, 1.08, 1.08);
+      clone.position.set(0.08, 0, -0.75);
+
+      const shadowMat = new THREE.MeshStandardMaterial({ color: 0x010307, roughness: 0.95 });
+      const evilEyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+
+      clone.traverse((child) => {
+        if (child.isSkinnedMesh) {
+          child.frustumCulled = false;
+          child.castShadow = true;
+          child.material = (child.name.includes('eye') || child.name.includes('Eye')) ? evilEyeMat : shadowMat;
+          child.material.skinning = true;
+        }
+        if (child.isBone) {
+          child.userData.restX = child.rotation.x;
+          window.shadowBones[child.name] = child;
+        }
+      });
+
+      clone.visible = false;
+      scene.add(clone);
+    });
+  });
+
+  function updateBones() {
+    const b = window.bones;
+    if (!b || !b.RightArm) return;
+    state.time += 0.016;
+
+    const breath = Math.sin(state.time * state.breathRate) * state.breathAmp;
+    const shiverVal = state.shiver * (Math.sin(state.time * 38) * 0.02);
+
+    if (b.Head) {
+      b.Head.rotation.x = state.headPitch + breath * 0.25;
+      b.Head.rotation.y = state.headYaw + shiverVal * 0.4;
+      b.Head.rotation.z = state.headRoll;
+    }
+
+    let rHip = 0, lHip = 0, rKnee = 0, lKnee = 0, armSwingL = 0, armSwingR = 0;
+    if (state.isWalking > 0.01) {
+      const w = state.walkCycle;
+      const wAmp = state.isWalking * 0.36;
+      rHip = Math.sin(w) * wAmp;
+      lHip = -Math.sin(w) * wAmp;
+      rKnee = Math.max(0, -Math.sin(w)) * wAmp * 1.3;
+      lKnee = Math.max(0, Math.sin(w)) * wAmp * 1.3;
+      armSwingL = Math.sin(w) * wAmp * 0.75;
+      armSwingR = -Math.sin(w) * wAmp * 0.75;
+      if (window.model) window.model.position.y = Math.abs(Math.sin(w * 2)) * 0.032 * state.isWalking;
+    } else {
+      if (window.model) window.model.position.y = 0;
+    }
+
+    if (state.footInspect > 0.01) {
+      rHip += state.footInspect * 0.42;
+      rKnee += state.footInspect * 0.65;
+    }
+
+    if (b.RightArm && b.RightForeArm) {
+      const baseArmX = b.RightArm.userData.restX + 1.35;
+      const reachX = -state.rArmReach * 0.6;
+      const reachZ = -state.rArmReach * 0.3;
+      const liftX = -state.rArmLift * 1.65;
+      const liftY = state.rArmLift * 0.4;
+      const liftZ = -state.rArmLift * 0.4;
+
+      b.RightArm.rotation.x = baseArmX + reachX + liftX + (state.rArmLift < 0.2 ? armSwingR : 0) + shiverVal;
+      b.RightArm.rotation.y = liftY;
+      b.RightArm.rotation.z = reachZ + liftZ;
+      b.RightForeArm.rotation.z = 0.25 - state.rForeArmBend * 2.05;
+    }
+
+    if (b.LeftArm && b.LeftForeArm) {
+      b.LeftArm.rotation.x = b.LeftArm.userData.restX + 1.35 + breath + armSwingL;
+      b.LeftArm.rotation.y = 0;
+      b.LeftArm.rotation.z = 0;
+      b.LeftForeArm.rotation.z = -0.25;
+    }
+
+    if (b.RightUpLeg && b.LeftUpLeg) {
+      b.RightUpLeg.rotation.x = b.RightUpLeg.userData.restX + rHip;
+      b.LeftUpLeg.rotation.x = b.LeftUpLeg.userData.restX + lHip;
+    }
+    if (b.RightLeg && b.LeftLeg) {
+      b.RightLeg.rotation.z = b.RightLeg.userData.restZ - rKnee;
+      b.LeftLeg.rotation.z = b.LeftLeg.userData.restZ + lKnee;
+    }
+
+    const sb = window.shadowBones;
+    if (sb && sb.RightArm) {
+      sb.RightArm.rotation.x = sb.RightArm.userData.restX + 1.35 - state.shadowReach * 1.1;
+      sb.RightArm.rotation.z = -0.2 - state.shadowReach * 0.35;
+      if (sb.RightForeArm) sb.RightForeArm.rotation.z = -state.shadowReach * 0.9;
+      if (sb.LeftArm) sb.LeftArm.rotation.x = sb.LeftArm.userData.restX + 1.35;
+    }
+  }
+
+  // Preset Poses
+  window.playPose = function(poseName) {
+    gsap.killTweensOf(state);
+    if (window.shadowClone) window.shadowClone.visible = false;
+    redBacklight.intensity = 0;
+
+    switch(poseName) {
+      case 'idle':
+        gsap.to(state, { rArmLift: 0, rArmReach: 0, rForeArmBend: 0, headPitch: 0, headYaw: 0, headRoll: 0, isWalking: 0, footInspect: 0, shiver: 0, breathRate: 2.2, breathAmp: 0.02, shadowReach: 0, duration: 1.0 });
+        break;
+      case 'phone_reach':
+        gsap.to(state, { rArmReach: 0.85, rForeArmBend: 0.55, headPitch: 0.2, rArmLift: 0, isWalking: 0, duration: 1.2, ease: "power2.out" });
+        break;
+      case 'phone_ear':
+        gsap.to(state, { rArmLift: 1.0, rForeArmBend: 1.0, headRoll: -0.18, headYaw: 0.12, headPitch: 0, shiver: 0.8, breathRate: 4.5, duration: 1.4, ease: "back.out(1.2)" });
+        break;
+      case 'phone_down':
+        gsap.to(state, { rArmLift: 0.45, rForeArmBend: 0.65, headPitch: 0.38, headRoll: 0, headYaw: 0, shiver: 0.2, duration: 1.2, ease: "power2.inOut" });
+        break;
+      case 'door_knock':
+        gsap.to(state, { headYaw: -0.85, headPitch: 0, rArmLift: 0.2, rForeArmBend: 0.2, duration: 0.4, ease: "back.out(2.2)" });
+        break;
+      case 'walk':
+        state.isWalking = 1.0;
+        gsap.to(state, { walkCycle: "+=" + (Math.PI * 6), duration: 3.0, ease: "none", repeat: -1 });
+        break;
+      case 'inspect_foot':
+        gsap.to(state, { footInspect: 1.0, rArmLift: 0.1, rForeArmBend: 0.2, headPitch: 0.52, duration: 1.2, ease: "power2.out" });
+        break;
+      case 'horror_climax':
+        if (window.shadowClone) window.shadowClone.visible = true;
+        gsap.to(redBacklight, { intensity: 4.2, duration: 1.2 });
+        gsap.to(state, { rArmLift: 0, rForeArmBend: 0, headPitch: 0, headYaw: 0, headRoll: 0, shiver: 1.2, breathRate: 6.0, shadowReach: 1.0, duration: 2.5, ease: "power2.out" });
+        break;
+    }
+  };
+
+  // Mouse Orbit Dragging
+  let isDragging = false, prevMouseX = 0, prevMouseY = 0;
+  canvas.addEventListener('mousedown', (e) => { isDragging = true; prevMouseX = e.clientX; prevMouseY = e.clientY; });
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - prevMouseX;
+    const deltaY = e.clientY - prevMouseY;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+
+    if (window.model) {
+      window.model.rotation.y += deltaX * 0.01;
+      if (window.shadowClone) window.shadowClone.rotation.y += deltaX * 0.01;
+    }
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    updateBones();
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,234 @@
+[
+  {
+    "start": 0.0,
+    "end": 4.78,
+    "text": "At midnight, Detective Gary trapped the missing gold to the old warehouse.",
+    "words": [
+      {
+        "word": "At",
+        "start": 0.0,
+        "end": 0.5
+      },
+      {
+        "word": "midnight,",
+        "start": 0.5,
+        "end": 1.02
+      },
+      {
+        "word": "Detective",
+        "start": 1.44,
+        "end": 1.9
+      },
+      {
+        "word": "Gary",
+        "start": 1.9,
+        "end": 2.16
+      },
+      {
+        "word": "trapped",
+        "start": 2.16,
+        "end": 2.76
+      },
+      {
+        "word": "the",
+        "start": 2.76,
+        "end": 2.98
+      },
+      {
+        "word": "missing",
+        "start": 2.98,
+        "end": 3.3
+      },
+      {
+        "word": "gold",
+        "start": 3.3,
+        "end": 3.64
+      },
+      {
+        "word": "to",
+        "start": 3.64,
+        "end": 3.92
+      },
+      {
+        "word": "the",
+        "start": 3.92,
+        "end": 4.08
+      },
+      {
+        "word": "old",
+        "start": 4.08,
+        "end": 4.34
+      },
+      {
+        "word": "warehouse.",
+        "start": 4.34,
+        "end": 4.78
+      }
+    ]
+  },
+  {
+    "start": 5.84,
+    "end": 6.3,
+    "text": "Ah ha!",
+    "words": [
+      {
+        "word": "Ah",
+        "start": 5.84,
+        "end": 6.02
+      },
+      {
+        "word": "ha!",
+        "start": 6.02,
+        "end": 6.3
+      }
+    ]
+  },
+  {
+    "start": 7.06,
+    "end": 9.82,
+    "text": "Nobody can hide treasure from Detective Gary.",
+    "words": [
+      {
+        "word": "Nobody",
+        "start": 7.06,
+        "end": 7.56
+      },
+      {
+        "word": "can",
+        "start": 7.56,
+        "end": 7.84
+      },
+      {
+        "word": "hide",
+        "start": 7.84,
+        "end": 8.06
+      },
+      {
+        "word": "treasure",
+        "start": 8.06,
+        "end": 8.5
+      },
+      {
+        "word": "from",
+        "start": 8.5,
+        "end": 8.76
+      },
+      {
+        "word": "Detective",
+        "start": 8.76,
+        "end": 9.32
+      },
+      {
+        "word": "Gary.",
+        "start": 9.32,
+        "end": 9.82
+      }
+    ]
+  },
+  {
+    "start": 11.6,
+    "end": 12.28,
+    "text": "Wait!",
+    "words": [
+      {
+        "word": "Wait!",
+        "start": 11.6,
+        "end": 12.28
+      }
+    ]
+  },
+  {
+    "start": 12.88,
+    "end": 14.72,
+    "text": "It is just an old dirty shoe.",
+    "words": [
+      {
+        "word": "It",
+        "start": 12.88,
+        "end": 13.08
+      },
+      {
+        "word": "is",
+        "start": 13.08,
+        "end": 13.18
+      },
+      {
+        "word": "just",
+        "start": 13.18,
+        "end": 13.4
+      },
+      {
+        "word": "an",
+        "start": 13.4,
+        "end": 13.64
+      },
+      {
+        "word": "old",
+        "start": 13.64,
+        "end": 13.94
+      },
+      {
+        "word": "dirty",
+        "start": 13.94,
+        "end": 14.38
+      },
+      {
+        "word": "shoe.",
+        "start": 14.38,
+        "end": 14.72
+      }
+    ]
+  },
+  {
+    "start": 15.64,
+    "end": 18.88,
+    "text": "The thief had already exchanged the gold for firewood.",
+    "words": [
+      {
+        "word": "The",
+        "start": 15.64,
+        "end": 15.84
+      },
+      {
+        "word": "thief",
+        "start": 15.84,
+        "end": 16.22
+      },
+      {
+        "word": "had",
+        "start": 16.22,
+        "end": 16.4
+      },
+      {
+        "word": "already",
+        "start": 16.4,
+        "end": 16.76
+      },
+      {
+        "word": "exchanged",
+        "start": 16.76,
+        "end": 17.5
+      },
+      {
+        "word": "the",
+        "start": 17.5,
+        "end": 17.74
+      },
+      {
+        "word": "gold",
+        "start": 17.74,
+        "end": 17.98
+      },
+      {
+        "word": "for",
+        "start": 17.98,
+        "end": 18.28
+      },
+      {
+        "word": "firewood.",
+        "start": 18.28,
+        "end": 18.88
+      }
+    ]
+  }
+]

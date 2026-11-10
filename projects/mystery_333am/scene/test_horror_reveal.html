@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Horror Reveal Test — Protagonist & Doppelganger</title>
+  <script src="lib/three.min.js"></script>
+  <script src="lib/meshopt_decoder.js"></script>
+  <script src="lib/GLTFLoader.js"></script>
+  <style>
+    body { margin: 0; background: #060913; overflow: hidden; }
+    canvas { width: 1080px; height: 1920px; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  const canvas = document.getElementById('c');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x040711);
+
+  const camera = new THREE.PerspectiveCamera(40, 1080 / 1920, 0.1, 50);
+  camera.position.set(0.3, 1.45, 2.3);
+  camera.lookAt(0, 1.35, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(1080, 1920);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  // Cinematic Horror Lighting
+  const moonLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
+  moonLight.position.set(2.5, 5, 3.5);
+  moonLight.castShadow = true;
+  scene.add(moonLight);
+
+  // Red glow behind shadow
+  const redBackLight = new THREE.PointLight(0xef4444, 3.5, 8);
+  redBackLight.position.set(0, 2.2, -1.8);
+  scene.add(redBackLight);
+
+  scene.add(new THREE.AmbientLight(0x0c162d, 1.0));
+
+  // Floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(12, 12),
+    new THREE.MeshStandardMaterial({ color: 0x090e1a, roughness: 0.4 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const loader = new THREE.GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  // Load Protagonist
+  loader.load('models/real_human_male.glb', (gltf) => {
+    const protagonist = gltf.scene;
+    protagonist.scale.set(1, 1, 1);
+    protagonist.position.set(0, 0, 0);
+
+    protagonist.traverse((child) => {
+      if (child.isSkinnedMesh) {
+        child.frustumCulled = false;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          child.material.skinning = true;
+          child.material.roughness = 0.65;
+        }
+      }
+      if (child.isBone) {
+        if (child.name === 'RightArm' || child.name === 'LeftArm') {
+          child.rotation.x += 1.35;
+        }
+      }
+    });
+
+    scene.add(protagonist);
+
+    // Load Doppelganger right behind him at z = -0.75
+    loader.load('models/real_human_male.glb', (cloneGltf) => {
+      const clone = cloneGltf.scene;
+      clone.scale.set(1.08, 1.08, 1.08); // slightly taller & broader
+      clone.position.set(0.08, 0, -0.75); // directly behind protagonist's shoulder
+
+      const shadowMat = new THREE.MeshStandardMaterial({
+        color: 0x010307,
+        roughness: 0.95,
+        metalness: 0.05
+      });
+      const evilEyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+
+      clone.traverse((child) => {
+        if (child.isSkinnedMesh) {
+          child.frustumCulled = false;
+          child.castShadow = true;
+          if (child.name.includes('eye') || child.name.includes('Eye')) {
+            child.material = evilEyeMat;
+          } else {
+            child.material = shadowMat;
+          }
+          child.material.skinning = true;
+        }
+        if (child.isBone) {
+          if (child.name === 'RightArm') {
+            // Shadow raises right arm towards protagonist's shoulder
+            child.rotation.x += 0.5;
+            child.rotation.z -= 0.3;
+          }
+          if (child.name === 'LeftArm') {
+            child.rotation.x += 1.35;
+          }
+          if (child.name === 'RightForeArm') {
+            child.rotation.z -= 0.6;
+          }
+        }
+      });
+
+      scene.add(clone);
+      window.horrorReady = true;
+      console.log("Horror reveal scene ready!");
+    });
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>
+

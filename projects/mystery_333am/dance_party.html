@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>GrowKaz Stickman Dance Party — 36-Bone Kinematics Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="scene/lib/gsap.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #020617;
+      color: #f8fafc;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #stage-container {
+      position: relative;
+      width: 1080px;
+      height: 1920px;
+      max-height: 98vh;
+      aspect-ratio: 9/16;
+      background: radial-gradient(circle at 50% 35%, #0d1527 0%, #030712 80%);
+      box-shadow: 0 0 70px rgba(0, 0, 0, 0.95), 0 0 40px rgba(236, 72, 153, 0.25);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    svg#dance-stage {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    }
+
+    /* Top HUD */
+    #top-hud {
+      position: absolute;
+      top: 40px; left: 40px; right: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-title {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(236, 72, 153, 0.4);
+      padding: 12px 24px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 0 25px rgba(236, 72, 153, 0.3);
+    }
+    .hud-title h1 {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, #ec4899, #38bdf8, #facc15);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .beat-counter {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #38bdf8;
+      font-family: monospace;
+      letter-spacing: 3px;
+      backdrop-filter: blur(16px);
+    }
+    .beat-dot {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #334155;
+      margin: 0 4px;
+      transition: all 0.1s;
+    }
+    .beat-dot.active {
+      background: #ec4899;
+      box-shadow: 0 0 15px #ec4899;
+      transform: scale(1.3);
+    }
+
+    /* Live Bone Activity Radar (Left Side) */
+    #bone-activity-panel {
+      position: absolute;
+      top: 140px; left: 40px;
+      width: 250px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 16px;
+      padding: 16px;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+    .panel-header {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .bone-badge-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .bone-badge {
+      font-size: 10px;
+      font-family: monospace;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: #1e293b;
+      color: #64748b;
+      transition: all 0.15s;
+    }
+    .bone-badge.active {
+      background: #38bdf8;
+      color: #020617;
+      font-weight: 700;
+      box-shadow: 0 0 8px #38bdf8;
+      transform: scale(1.08);
+    }
+
+    /* Controls Panel (Bottom) */
+    #bottom-controls {
+      position: absolute;
+      bottom: 40px; left: 40px; right: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+    }
+    .dance-btn-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .dance-btn {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #f8fafc;
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dance-btn:hover, .dance-btn.active {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border-color: #f472b6;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.4);
+    }
+
+    /* Equalizer Bars */
+    .eq-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 6px;
+      height: 60px;
+    }
+    .eq-bar {
+      width: 10px;
+      background: linear-gradient(to top, #38bdf8, #ec4899);
+      border-radius: 4px;
+      height: 8px;
+      transition: height 0.08s ease;
+    }
+  </style>
+</head>
+<body>
+
+<div id="stage-container">
+  <!-- Top HUD -->
+  <div id="top-hud">
+    <div class="hud-title">
+      <span style="font-size: 24px;">🕺</span>
+      <h1>GROWKAZ BONE DANCE TEST</h1>
+    </div>
+    <div class="beat-counter">
+      <span id="bpm-display">124 BPM</span>
+      <span class="beat-dot" id="b1"></span>
+      <span class="beat-dot" id="b2"></span>
+      <span class="beat-dot" id="b3"></span>
+      <span class="beat-dot" id="b4"></span>
+    </div>
+  </div>
+
+  <!-- Real-Time Bone Activity Panel -->
+  <div id="bone-activity-panel">
+    <div class="panel-header">
+      <span>36 ACTIVE BONES</span>
+      <span id="active-bone-count" style="color: #38bdf8;">0 ACTIVE</span>
+    </div>
+    <div class="bone-badge-grid" id="badge-grid"></div>
+  </div>
+
+  <!-- Stage SVG -->
+  <svg id="dance-stage" viewBox="0 0 1080 1920">
+    <defs>
+      <!-- Spotlights -->
+      <radialGradient id="pink-spot" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ec4899" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="cyan-spot" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="yellow-spot" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#facc15" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#facc15" stop-opacity="0"/>
+      </radialGradient>
+
+      <!-- Floor Glow Grid -->
+      <linearGradient id="floor-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#0e1726"/>
+        <stop offset="100%" stop-color="#020617"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Background Beams -->
+    <polygon id="beam-left" points="0,0 200,0 600,1920 0,1920" fill="url(#cyan-spot)" opacity="0.6"/>
+    <polygon id="beam-right" points="880,0 1080,0 1080,1920 480,1920" fill="url(#pink-spot)" opacity="0.6"/>
+
+    <!-- Dance Floor Perspective Grid -->
+    <polygon points="120,1350 960,1350 1080,1920 0,1920" fill="url(#floor-grad)" stroke="#1e293b" stroke-width="2"/>
+    <g id="grid-lines" stroke="rgba(56, 189, 248, 0.2)" stroke-width="2">
+      <!-- Perspective lines -->
+      <line x1="280" y1="1350" x2="160" y2="1920"/>
+      <line x1="440" y1="1350" x2="380" y2="1920"/>
+      <line x1="640" y1="1350" x2="700" y2="1920"/>
+      <line x1="800" y1="1350" x2="920" y2="1920"/>
+      <!-- Horizontal beat rings -->
+      <line x1="90" y1="1450" x2="990" y2="1450"/>
+      <line x1="60" y1="1580" x2="1020" y2="1580"/>
+      <line x1="20" y1="1740" x2="1060" y2="1740"/>
+    </g>
+
+    <!-- Stage Neon Base Center Ring -->
+    <ellipse id="stage-ring" cx="540" cy="1420" rx="280" ry="70" fill="none" stroke="#ec4899" stroke-width="4" opacity="0.6"/>
+    <ellipse id="stage-inner-ring" cx="540" cy="1420" rx="180" ry="45" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.5"/>
+
+    <!-- Stickman Actor Will Be Injected Here -->
+    <g id="stickman-slot"></g>
+  </svg>
+
+  <!-- Bottom Interactive Controls & Visualizer -->
+  <div id="bottom-controls">
+    <div class="eq-container" id="eq-container">
+      <!-- 24 EQ bars -->
+    </div>
+
+    <div class="dance-btn-row">
+      <button class="dance-btn active" onclick="switchDance('hiphop')">⚡ Hip-Hop Poppin'</button>
+      <button class="dance-btn" onclick="switchDance('disco')">🪩 Saturday Disco</button>
+      <button class="dance-btn" onclick="switchDance('wave')">🌊 Liquid Wave</button>
+      <button class="dance-btn" onclick="switchDance('walk')">🚶 Funky Walk</button>
+      <button class="dance-btn" onclick="toggleAudio()">🎵 Beat: ON</button>
+    </div>
+  </div>
+</div>
+
+<audio id="dance-audio" src="audio/dance_beat.mp3" loop preload="auto"></audio>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// Full 36-Bone Skeleton Definition Inline for Zero Dependencies
+// ─────────────────────────────────────────────────────────────
+class GKStickmanSkeleton {
+  constructor(svgId, options = {}) {
+    this.svg = document.getElementById(svgId);
+    this.cfg = {
+      id:          options.id          || 'hero-dancer',
+      x:           options.x           || 540,
+      y:           options.y           || 1160,
+      scale:       options.scale       || 1.35,
+      color:       options.color       || '#f8fafc',
+      sw:          options.strokeWidth || 8,
+      fill:        options.fill        || '#090e1a',
+      eyeColor:    options.eyeColor    || '#38bdf8',
+    };
+    this.bones = {};
+    this.root = null;
+    this._build();
+  }
+
+  _build() {
+    const { id, x, y, scale, color, sw, fill, eyeColor } = this.cfg;
+    const ns = 'http://www.w3.org/2000/svg';
+
+    const root = document.createElementNS(ns, 'g');
+    root.setAttribute('id', id);
+    root.setAttribute('transform', `translate(${x},${y}) scale(${scale})`);
+    this.root = root;
+
+    const el = (tag, attrs, boneName) => {
+      const e = document.createElementNS(ns, tag);
+      for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+      if (boneName) {
+        e.setAttribute('data-bone', boneName);
+        this.bones[boneName] = e;
+      }
+      return e;
+    };
+
+    // pelvis
+    const pelvis = el('g', { id: `${id}-pelvis`, 'data-bone': 'pelvis' }, 'pelvis');
+    root.appendChild(pelvis);
+
+    // Spine
+    pelvis.appendChild(el('line', { id: `${id}-spine-lower`, 'data-bone': 'spine_lower', x1: 0, y1: 60, x2: 0, y2: 10, stroke: color, 'stroke-width': sw + 1, 'stroke-linecap': 'round' }, 'spine_lower'));
+    pelvis.appendChild(el('line', { id: `${id}-spine-mid`, 'data-bone': 'spine_mid', x1: 0, y1: 10, x2: 0, y2: -50, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'spine_mid'));
+    pelvis.appendChild(el('line', { id: `${id}-spine-upper`, 'data-bone': 'spine_upper', x1: 0, y1: -50, x2: 0, y2: -115, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'spine_upper'));
+    pelvis.appendChild(el('line', { id: `${id}-neck`, 'data-bone': 'neck', x1: 0, y1: -115, x2: 0, y2: -128, stroke: color, 'stroke-width': sw - 1, 'stroke-linecap': 'round' }, 'neck'));
+
+    // Head
+    const hg = el('g', { id: `${id}-head-group`, 'data-bone': 'head' }, 'head');
+    hg.appendChild(el('circle', { id: `${id}-head-circle`, cx: 0, cy: -165, r: 40, fill: fill, stroke: color, 'stroke-width': sw }));
+    hg.appendChild(el('circle', { id: `${id}-eye-l`, 'data-bone': 'eye_l', cx: -13, cy: -168, r: 5, fill: eyeColor }, 'eye_l'));
+    hg.appendChild(el('circle', { id: `${id}-eye-r`, 'data-bone': 'eye_r', cx: 13, cy: -168, r: 5, fill: eyeColor }, 'eye_r'));
+    hg.appendChild(el('path', { id: `${id}-eyebrow-l`, 'data-bone': 'eyebrow_l', d: 'M -20 -178 L -6 -180', stroke: color, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' }, 'eyebrow_l'));
+    hg.appendChild(el('path', { id: `${id}-eyebrow-r`, 'data-bone': 'eyebrow_r', d: 'M 6 -180 L 20 -178', stroke: color, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' }, 'eyebrow_r'));
+    hg.appendChild(el('path', { id: `${id}-mouth`, 'data-bone': 'mouth', d: 'M -10 -150 Q 0 -144 10 -150', stroke: color, 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round' }, 'mouth'));
+    hg.appendChild(el('circle', { id: `${id}-sweat`, 'data-bone': 'sweat', cx: 35, cy: -180, r: 4.5, fill: eyeColor, opacity: 0 }, 'sweat'));
+    pelvis.appendChild(hg);
+
+    // Shoulders
+    pelvis.appendChild(el('line', { id: `${id}-shoulder-l`, 'data-bone': 'shoulder_l', x1: 0, y1: -100, x2: -28, y2: -105, stroke: color, 'stroke-width': sw - 1, 'stroke-linecap': 'round' }, 'shoulder_l'));
+    pelvis.appendChild(el('line', { id: `${id}-shoulder-r`, 'data-bone': 'shoulder_r', x1: 0, y1: -100, x2: 28, y2: -105, stroke: color, 'stroke-width': sw - 1, 'stroke-linecap': 'round' }, 'shoulder_r'));
+
+    // Left Arm + Hand + Fingers
+    pelvis.appendChild(el('line', { id: `${id}-upperarm-l`, 'data-bone': 'upperarm_l', x1: -28, y1: -105, x2: -60, y2: -60, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'upperarm_l'));
+    pelvis.appendChild(el('line', { id: `${id}-forearm-l`, 'data-bone': 'forearm_l', x1: -60, y1: -60, x2: -85, y2: -15, stroke: color, 'stroke-width': sw - 1, 'stroke-linecap': 'round' }, 'forearm_l'));
+    const hL = el('g', { id: `${id}-hand-l`, 'data-bone': 'hand_l' }, 'hand_l');
+    hL.appendChild(el('circle', { cx: -85, cy: -15, r: 7, fill: fill, stroke: color, 'stroke-width': sw - 2 }));
+    pelvis.appendChild(hL);
+    pelvis.appendChild(el('line', { id: `${id}-thumb-l`, 'data-bone': 'thumb_l', x1: -85, y1: -15, x2: -96, y2: -24, stroke: color, 'stroke-width': 3, 'stroke-linecap': 'round' }, 'thumb_l'));
+    pelvis.appendChild(el('line', { id: `${id}-index-l`, 'data-bone': 'index_l', x1: -85, y1: -15, x2: -92, y2: -5, stroke: color, 'stroke-width': 3, 'stroke-linecap': 'round' }, 'index_l'));
+    pelvis.appendChild(el('line', { id: `${id}-pinky-l`, 'data-bone': 'pinky_l', x1: -85, y1: -15, x2: -92, y2: -26, stroke: color, 'stroke-width': 3, 'stroke-linecap': 'round' }, 'pinky_l'));
+
+    // Right Arm + Hand + Fingers
+    pelvis.appendChild(el('line', { id: `${id}-upperarm-r`, 'data-bone': 'upperarm_r', x1: 28, y1: -105, x2: 60, y2: -60, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'upperarm_r'));
+    pelvis.appendChild(el('line', { id: `${id}-forearm-r`, 'data-bone': 'forearm_r', x1: 60, y1: -60, x2: 85, y2: -15, stroke: color, 'stroke-width': sw - 1, 'stroke-linecap': 'round' }, 'forearm_r'));
+    const hR = el('g', { id: `${id}-hand-r`, 'data-bone': 'hand_r' }, 'hand_r');
+    hR.appendChild(el('circle', { cx: 85, cy: -15, r: 7, fill: fill, stroke: color, 'stroke-width': sw - 2 }));
+    pelvis.appendChild(hR);
+    pelvis.appendChild(el('line', { id: `${id}-thumb-r`, 'data-bone': 'thumb_r', x1: 85, y1: -15, x2: 96, y2: -24, stroke: color, 'stroke-width': 3, 'stroke-linecap': 'round' }, 'thumb_r'));
+    pelvis.appendChild(el('line', { id: `${id}-index-r`, 'data-bone': 'index_r', x1: 85, y1: -15, x2: 92, y2: -5, stroke: color, 'stroke-width': 3, 'stroke-linecap': 'round' }, 'index_r'));
+    pelvis.appendChild(el('line', { id: `${id}-pinky-r`, 'data-bone': 'pinky_r', x1: 85, y1: -15, x2: 92, y2: -26, stroke: color, 'stroke-width': 3, 'stroke-linecap': 'round' }, 'pinky_r'));
+
+    // Left Leg
+    pelvis.appendChild(el('line', { id: `${id}-hip-l`, 'data-bone': 'hip_l', x1: 0, y1: 60, x2: -18, y2: 72, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'hip_l'));
+    pelvis.appendChild(el('line', { id: `${id}-thigh-l`, 'data-bone': 'thigh_l', x1: -18, y1: 72, x2: -40, y2: 160, stroke: color, 'stroke-width': sw + 1, 'stroke-linecap': 'round' }, 'thigh_l'));
+    pelvis.appendChild(el('line', { id: `${id}-shin-l`, 'data-bone': 'shin_l', x1: -40, y1: 160, x2: -48, y2: 255, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'shin_l'));
+    pelvis.appendChild(el('path', { id: `${id}-foot-l`, 'data-bone': 'foot_l', d: 'M -48 255 L -48 265 L -72 265', stroke: color, 'stroke-width': sw, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, 'foot_l'));
+    pelvis.appendChild(el('line', { id: `${id}-toe-l`, 'data-bone': 'toe_l', x1: -72, y1: 265, x2: -84, y2: 265, stroke: color, 'stroke-width': sw - 2, 'stroke-linecap': 'round' }, 'toe_l'));
+
+    // Right Leg
+    pelvis.appendChild(el('line', { id: `${id}-hip-r`, 'data-bone': 'hip_r', x1: 0, y1: 60, x2: 18, y2: 72, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'hip_r'));
+    pelvis.appendChild(el('line', { id: `${id}-thigh-r`, 'data-bone': 'thigh_r', x1: 18, y1: 72, x2: 40, y2: 160, stroke: color, 'stroke-width': sw + 1, 'stroke-linecap': 'round' }, 'thigh_r'));
+    pelvis.appendChild(el('line', { id: `${id}-shin-r`, 'data-bone': 'shin_r', x1: 40, y1: 160, x2: 48, y2: 255, stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round' }, 'shin_r'));
+    pelvis.appendChild(el('path', { id: `${id}-foot-r`, 'data-bone': 'foot_r', d: 'M 48 255 L 48 265 L 72 265', stroke: color, 'stroke-width': sw, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, 'foot_r'));
+    pelvis.appendChild(el('line', { id: `${id}-toe-r`, 'data-bone': 'toe_r', x1: 72, y1: 265, x2: 84, y2: 265, stroke: color, 'stroke-width': sw - 2, 'stroke-linecap': 'round' }, 'toe_r'));
+
+    this.svg.appendChild(root);
+  }
+
+  getBone(n) { return this.bones[n] || null; }
+  getBoneNames() { return Object.keys(this.bones); }
+
+  startDance(style = 'hiphop', bpm = 124) {
+    if (!window.gsap) return;
+    this.stopDance();
+    const beat = 60 / bpm; // ~0.484s
+    const tl = gsap.timeline({ repeat: -1 });
+
+    if (style === 'disco') {
+      // 🕺 DISCO STYLE
+      tl.to(this.bones['pelvis'],     { x: -14, y: 8, duration: beat, ease: 'power2.out' }, 0);
+      tl.to(this.bones['spine_upper'],{ attr: { x1: -5, y1: -50, x2: 12, y2: -115 }, duration: beat }, 0);
+      tl.to(this.bones['head'],       { x: 12, y: -4, rotation: 12, duration: beat }, 0);
+      tl.to(this.bones['mouth'],      { attr: { d: 'M -12 -147 Q 0 -136 12 -147' }, duration: beat * 0.5 }, 0);
+      tl.to(this.bones['shoulder_r'], { attr: { x1: 0, y1: -100, x2: 32, y2: -110 }, duration: beat }, 0);
+      tl.to(this.bones['upperarm_r'], { attr: { x1: 32, y1: -110, x2: 75, y2: -150 }, duration: beat, ease: 'back.out(1.8)' }, 0);
+      tl.to(this.bones['forearm_r'],  { attr: { x1: 75, y1: -150, x2: 115, y2: -195 }, duration: beat, ease: 'back.out(1.8)' }, 0);
+      tl.to(this.bones['hand_r'],     { x: 30, y: -180, duration: beat }, 0);
+      tl.to(this.bones['upperarm_l'], { attr: { x1: -28, y1: -100, x2: -58, y2: -50 }, duration: beat }, 0);
+      tl.to(this.bones['forearm_l'],  { attr: { x1: -58, y1: -50, x2: -35, y2: 60 }, duration: beat }, 0);
+      tl.to(this.bones['thigh_l'],    { attr: { x1: -18, y1: 72, x2: -50, y2: 150 }, duration: beat }, 0);
+      tl.to(this.bones['shin_l'],     { attr: { x1: -50, y1: 150, x2: -42, y2: 245 }, duration: beat }, 0);
+
+      // Beat 2
+      tl.to(this.bones['pelvis'],     { x: 10, y: 14, duration: beat, ease: 'power2.inOut' }, beat);
+      tl.to(this.bones['upperarm_r'], { attr: { x1: 28, y1: -105, x2: -15, y2: -45 }, duration: beat }, beat);
+      tl.to(this.bones['forearm_r'],  { attr: { x1: -15, y1: -45, x2: -65, y2: 15 }, duration: beat }, beat);
+      tl.to(this.bones['hand_r'],     { x: -150, y: 30, duration: beat }, beat);
+
+      // Beat 3
+      tl.to(this.bones['pelvis'],     { x: 14, y: 8, duration: beat, ease: 'power2.out' }, beat * 2);
+      tl.to(this.bones['spine_upper'],{ attr: { x1: 5, y1: -50, x2: -12, y2: -115 }, duration: beat }, beat * 2);
+      tl.to(this.bones['head'],       { x: -12, y: -4, rotation: -12, duration: beat }, beat * 2);
+      tl.to(this.bones['shoulder_l'], { attr: { x1: 0, y1: -100, x2: -32, y2: -110 }, duration: beat }, beat * 2);
+      tl.to(this.bones['upperarm_l'], { attr: { x1: -32, y1: -110, x2: -75, y2: -150 }, duration: beat, ease: 'back.out(1.8)' }, beat * 2);
+      tl.to(this.bones['forearm_l'],  { attr: { x1: -75, y1: -150, x2: -115, y2: -195 }, duration: beat, ease: 'back.out(1.8)' }, beat * 2);
+      tl.to(this.bones['hand_l'],     { x: -30, y: -180, duration: beat }, beat * 2);
+      tl.to(this.bones['upperarm_r'], { attr: { x1: 28, y1: -100, x2: 58, y2: -50 }, duration: beat }, beat * 2);
+      tl.to(this.bones['forearm_r'],  { attr: { x1: 58, y1: -50, x2: 35, y2: 60 }, duration: beat }, beat * 2);
+      tl.to(this.bones['thigh_r'],    { attr: { x1: 18, y1: 72, x2: 50, y2: 150 }, duration: beat }, beat * 2);
+      tl.to(this.bones['shin_r'],     { attr: { x1: 50, y1: 150, x2: 42, y2: 245 }, duration: beat }, beat * 2);
+
+      // Beat 4
+      tl.to(this.bones['pelvis'],     { x: -10, y: 14, duration: beat, ease: 'power2.inOut' }, beat * 3);
+      tl.to(this.bones['upperarm_l'], { attr: { x1: -28, y1: -105, x2: 15, y2: -45 }, duration: beat }, beat * 3);
+      tl.to(this.bones['forearm_l'],  { attr: { x1: 15, y1: -45, x2: 65, y2: 15 }, duration: beat }, beat * 3);
+      tl.to(this.bones['hand_l'],     { x: 150, y: 30, duration: beat }, beat * 3);
+
+    } else if (style === 'wave') {
+      // 🌊 LIQUID WAVE
+      const step = beat * 0.35;
+      tl.to(this.bones['thumb_l'],    { attr: { x2: -104, y2: -35 }, duration: step }, 0);
+      tl.to(this.bones['forearm_l'],  { attr: { x1: -65, y1: -65, x2: -90, y2: -35 }, duration: step }, step * 0.5);
+      tl.to(this.bones['upperarm_l'], { attr: { x1: -28, y1: -105, x2: -65, y2: -65 }, duration: step }, step);
+      tl.to(this.bones['shoulder_l'], { attr: { y1: -95, y2: -115 }, duration: step }, step * 1.5);
+      tl.to(this.bones['spine_upper'],{ attr: { x1: 0, y1: -45, x2: 10, y2: -118 }, duration: step }, step * 2);
+      tl.to(this.bones['head'],       { rotation: 14, x: 8, duration: step }, step * 2.2);
+      tl.to(this.bones['shoulder_r'], { attr: { y1: -95, y2: -115 }, duration: step }, step * 3);
+      tl.to(this.bones['upperarm_r'], { attr: { x1: 28, y1: -105, x2: 70, y2: -75 }, duration: step }, step * 3.5);
+      tl.to(this.bones['forearm_r'],  { attr: { x1: 70, y1: -75, x2: 105, y2: -50 }, duration: step }, step * 4);
+      tl.to(this.bones['pelvis'],     { y: 18, duration: step * 2, yoyo: true, repeat: 1, ease: 'sine.inOut' }, step * 2);
+
+    } else {
+      // ⚡ HIP-HOP POPPIN (Default)
+      // Beat 1: Left Hip Drop + Right Arm High Pump
+      tl.to(this.bones['pelvis'],     { x: -16, y: 15, duration: beat * 0.7, ease: 'back.out(2)' }, 0);
+      tl.to(this.bones['spine_lower'],{ attr: { x1: 0, y1: 60, x2: -10, y2: 12 }, duration: beat * 0.7 }, 0);
+      tl.to(this.bones['spine_upper'],{ attr: { x1: -4, y1: -50, x2: 6, y2: -112 }, duration: beat * 0.7 }, 0);
+      tl.to(this.bones['head'],       { x: 10, y: 6, rotation: 10, duration: beat * 0.7, ease: 'back.out(2)' }, 0);
+      tl.to(this.bones['mouth'],      { attr: { d: 'M -12 -147 Q 0 -137 12 -147' }, duration: beat * 0.4 }, 0);
+      tl.to(this.bones['shoulder_r'], { attr: { x1: 0, y1: -100, x2: 28, y2: -112 }, duration: beat * 0.6 }, 0);
+      tl.to(this.bones['upperarm_r'], { attr: { x1: 28, y1: -112, x2: 70, y2: -130 }, duration: beat * 0.6, ease: 'back.out(2)' }, 0);
+      tl.to(this.bones['forearm_r'],  { attr: { x1: 70, y1: -130, x2: 60, y2: -185 }, duration: beat * 0.6, ease: 'back.out(2)' }, 0);
+      tl.to(this.bones['hand_r'],     { x: -25, y: -170, duration: beat * 0.6 }, 0);
+      tl.to(this.bones['thigh_l'],    { attr: { x1: -18, y1: 72, x2: -48, y2: 152 }, duration: beat * 0.7 }, 0);
+      tl.to(this.bones['shin_l'],     { attr: { x1: -48, y1: 152, x2: -40, y2: 242 }, duration: beat * 0.7 }, 0);
+      tl.to(this.bones['thigh_r'],    { attr: { x1: 18, y1: 72, x2: 52, y2: 162 }, duration: beat * 0.7 }, 0);
+      tl.to(this.bones['shin_r'],     { attr: { x1: 52, y1: 162, x2: 65, y2: 250 }, duration: beat * 0.7 }, 0);
+
+      // Beat 2: Center Chest Pop & Jazz Hands
+      tl.to(this.bones['pelvis'],     { x: 0, y: -6, duration: beat * 0.5, ease: 'power3.out' }, beat);
+      tl.to(this.bones['spine_upper'],{ attr: { x1: 0, y1: -50, x2: 0, y2: -120 }, duration: beat * 0.5 }, beat);
+      tl.to(this.bones['head'],       { x: 0, y: -8, rotation: 0, duration: beat * 0.5 }, beat);
+      tl.to(this.bones['mouth'],      { attr: { d: 'M -8 -148 A 6 8 0 1 0 8 -148 A 6 8 0 1 0 -8 -148' }, duration: beat * 0.3 }, beat);
+      tl.to(this.bones['upperarm_l'], { attr: { x1: -28, y1: -105, x2: -45, y2: -65 }, duration: beat * 0.5, ease: 'back.out(2.5)' }, beat);
+      tl.to(this.bones['forearm_l'],  { attr: { x1: -45, y1: -65, x2: -10, y2: -65 }, duration: beat * 0.5, ease: 'back.out(2.5)' }, beat);
+      tl.to(this.bones['upperarm_r'], { attr: { x1: 28, y1: -105, x2: 45, y2: -65 }, duration: beat * 0.5, ease: 'back.out(2.5)' }, beat);
+      tl.to(this.bones['forearm_r'],  { attr: { x1: 45, y1: -65, x2: 10, y2: -65 }, duration: beat * 0.5, ease: 'back.out(2.5)' }, beat);
+      tl.to(this.bones['hand_l'],     { x: 75, y: -50, duration: beat * 0.5 }, beat);
+      tl.to(this.bones['hand_r'],     { x: -75, y: -50, duration: beat * 0.5 }, beat);
+
+      // Beat 3: Right Hip Drop + Left Arm High Pump
+      tl.to(this.bones['pelvis'],     { x: 16, y: 15, duration: beat * 0.7, ease: 'back.out(2)' }, beat * 2);
+      tl.to(this.bones['spine_lower'],{ attr: { x1: 0, y1: 60, x2: 10, y2: 12 }, duration: beat * 0.7 }, beat * 2);
+      tl.to(this.bones['spine_upper'],{ attr: { x1: 4, y1: -50, x2: -6, y2: -112 }, duration: beat * 0.7 }, beat * 2);
+      tl.to(this.bones['head'],       { x: -10, y: 6, rotation: -10, duration: beat * 0.7, ease: 'back.out(2)' }, beat * 2);
+      tl.to(this.bones['shoulder_l'], { attr: { x1: 0, y1: -100, x2: -28, y2: -112 }, duration: beat * 0.6 }, beat * 2);
+      tl.to(this.bones['upperarm_l'], { attr: { x1: -28, y1: -112, x2: -70, y2: -130 }, duration: beat * 0.6, ease: 'back.out(2)' }, beat * 2);
+      tl.to(this.bones['forearm_l'],  { attr: { x1: -70, y1: -130, x2: -60, y2: -185 }, duration: beat * 0.6, ease: 'back.out(2)' }, beat * 2);
+      tl.to(this.bones['hand_l'],     { x: 25, y: -170, duration: beat * 0.6 }, beat * 2);
+      tl.to(this.bones['thigh_r'],    { attr: { x1: 18, y1: 72, x2: 48, y2: 152 }, duration: beat * 0.7 }, beat * 2);
+      tl.to(this.bones['shin_r'],     { attr: { x1: 48, y1: 152, x2: 40, y2: 242 }, duration: beat * 0.7 }, beat * 2);
+      tl.to(this.bones['thigh_l'],    { attr: { x1: -18, y1: 72, x2: -52, y2: 162 }, duration: beat * 0.7 }, beat * 2);
+      tl.to(this.bones['shin_l'],     { attr: { x1: -52, y1: 162, x2: -65, y2: 250 }, duration: beat * 0.7 }, beat * 2);
+
+      // Beat 4: Low Groovy Squat Bounce
+      tl.to(this.bones['pelvis'],     { x: 0, y: 22, duration: beat * 0.6, ease: 'sine.inOut' }, beat * 3);
+      tl.to(this.bones['thigh_l'],    { attr: { x1: -18, y1: 72, x2: -50, y2: 140 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['shin_l'],     { attr: { x1: -50, y1: 140, x2: -35, y2: 235 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['thigh_r'],    { attr: { x1: 18, y1: 72, x2: 50, y2: 140 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['shin_r'],     { attr: { x1: 50, y1: 140, x2: 35, y2: 235 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['upperarm_l'], { attr: { x1: -28, y1: -105, x2: -58, y2: -60 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['forearm_l'],  { attr: { x1: -58, y1: -60, x2: -85, y2: -15 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['upperarm_r'], { attr: { x1: 28, y1: -105, x2: 58, y2: -60 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['forearm_r'],  { attr: { x1: 58, y1: -60, x2: 85, y2: -15 }, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['hand_l'],     { x: 0, y: 0, duration: beat * 0.6 }, beat * 3);
+      tl.to(this.bones['hand_r'],     { x: 0, y: 0, duration: beat * 0.6 }, beat * 3);
+    }
+
+    this._danceTl = tl;
+    return tl;
+  }
+
+  stopDance() {
+    if (this._danceTl) this._danceTl.kill();
+  }
+}
+
+// ── Initialize Scene ─────────────────────────────────────────
+const rig = window.dancer = new GKStickmanSkeleton('stickman-slot', {
+  id: 'dancer', x: 540, y: 1140, scale: 1.35, color: '#f8fafc', strokeWidth: 8
+});
+
+// Build 36 Bone Activity Badges
+const badgeGrid = document.getElementById('badge-grid');
+const boneNames = rig.getBoneNames();
+boneNames.forEach(bname => {
+  const badge = document.createElement('div');
+  badge.className = 'bone-badge';
+  badge.id = `badge-${bname}`;
+  badge.textContent = bname;
+  badgeGrid.appendChild(badge);
+});
+
+// Build 24 EQ bars
+const eqContainer = document.getElementById('eq-container');
+for (let i = 0; i < 24; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'eq-bar';
+  bar.id = `eq-${i}`;
+  eqContainer.appendChild(bar);
+}
+
+// Beat Counter & Audio Sync
+const audio = document.getElementById('dance-audio');
+const beatDots = [document.getElementById('b1'), document.getElementById('b2'), document.getElementById('b3'), document.getElementById('b4')];
+let currentStyle = 'hiphop';
+let bpm = 124;
+let beatTime = 60 / bpm;
+
+// Start default dance
+rig.startDance('hiphop', bpm);
+audio.play().catch(e => console.log('Audio autoplay policy:', e));
+
+function updateVisuals() {
+  requestAnimationFrame(updateVisuals);
+  const cur = audio.currentTime || 0;
+  const beatIndex = Math.floor((cur / beatTime) % 4);
+  
+  beatDots.forEach((d, i) => d.classList.toggle('active', i === beatIndex));
+
+  // Pulse stage rings on kick (beat 0 & 2)
+  const isKick = (beatIndex === 0 || beatIndex === 2);
+  const stageRing = document.getElementById('stage-ring');
+  stageRing.setAttribute('stroke-width', isKick ? '8' : '4');
+  stageRing.setAttribute('opacity', isKick ? '0.9' : '0.5');
+
+  // Pulse EQ bars
+  for (let i = 0; i < 24; i++) {
+    const bar = document.getElementById(`eq-${i}`);
+    const h = 8 + Math.abs(Math.sin(cur * 12 + i * 0.4)) * (isKick ? 52 : 32);
+    bar.style.height = `${h}px`;
+  }
+
+  // Light up all active bones in the radar
+  let activeCount = 0;
+  boneNames.forEach(bn => {
+    const b = rig.getBone(bn);
+    const badge = document.getElementById(`badge-${bn}`);
+    if (badge) {
+      badge.classList.add('active');
+      activeCount++;
+    }
+  });
+  document.getElementById('active-bone-count').textContent = `${activeCount} / 36 ACTIVE`;
+}
+updateVisuals();
+
+// Controls
+function switchDance(style) {
+  currentStyle = style;
+  document.querySelectorAll('.dance-btn').forEach(b => b.classList.remove('active'));
+  if (window.event && window.event.target) {
+    window.event.target.classList.add('active');
+  }
+
+  if (style === 'walk') {
+    rig.stopDance();
+    rig.startWalk(0.48);
+  } else {
+    rig.startDance(style, bpm);
+  }
+}
+
+function toggleAudio() {
+  if (audio.paused) {
+    audio.play();
+    if (window.event && window.event.target) window.event.target.textContent = '🎵 Beat: ON';
+  } else {
+    audio.pause();
+    if (window.event && window.event.target) window.event.target.textContent = '🔇 Beat: OFF';
+  }
+}
+
+// Global deterministic API for frame renderers
+window.danceReady = true;
+window.seekDanceTime = function(sec) {
+  audio.currentTime = sec;
+  rig._danceTl && rig._danceTl.time(sec % rig._danceTl.duration());
+};
+</script>
+</body>
+</html>

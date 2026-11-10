@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>GrowKaz Studio — Realistic 3D Human 99-Bone Dance Party</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="scene/lib/three.min.js"></script>
+  <script src="scene/lib/meshopt_decoder.js"></script>
+  <script src="scene/lib/GLTFLoader.js"></script>
+  <script src="scene/lib/gsap.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #020617;
+      color: #f8fafc;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #viewport-container {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      background: radial-gradient(circle at 50% 40%, #0d1527 0%, #020617 80%);
+    }
+
+    canvas#c {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Top HUD */
+    #top-bar {
+      position: absolute;
+      top: 24px; left: 24px; right: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-title {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(236, 72, 153, 0.4);
+      padding: 10px 22px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 0 25px rgba(236, 72, 153, 0.3);
+    }
+    .hud-title h1 {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, #ec4899, #38bdf8, #facc15);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .beat-counter {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 10px 22px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #38bdf8;
+      font-family: monospace;
+      letter-spacing: 2px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .beat-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #334155;
+      transition: all 0.1s;
+    }
+    .beat-dot.active {
+      background: #ec4899;
+      box-shadow: 0 0 12px #ec4899;
+      transform: scale(1.4);
+    }
+
+    /* Bottom Control Bar */
+    #bottom-bar {
+      position: absolute;
+      bottom: 24px; left: 24px; right: 24px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      z-index: 10;
+      flex-wrap: wrap;
+    }
+    .dance-btn {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #f8fafc;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dance-btn:hover, .dance-btn.active {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border-color: #f472b6;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(236, 72, 153, 0.4);
+    }
+
+    /* Right Bone Inspector Panel */
+    #side-panel {
+      width: 320px;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      border-left: 1px solid rgba(56, 189, 248, 0.25);
+      backdrop-filter: blur(16px);
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+    }
+    .panel-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+    .bone-monitor-box {
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #94a3b8;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .bone-stat-val {
+      color: #38bdf8;
+      font-weight: bold;
+    }
+    .cam-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cam-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .cam-btn:hover {
+      background: #38bdf8;
+      color: #020617;
+      border-color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+<div id="viewport-container">
+  <canvas id="c"></canvas>
+
+  <!-- Top Bar -->
+  <div id="top-bar">
+    <div class="hud-title">
+      <span style="font-size: 20px;">🕺</span>
+      <h1>3D HUMAN 99-BONE DANCE TEST</h1>
+    </div>
+    <div class="beat-counter">
+      <span>124 BPM</span>
+      <span class="beat-dot" id="b0"></span>
+      <span class="beat-dot" id="b1"></span>
+      <span class="beat-dot" id="b2"></span>
+      <span class="beat-dot" id="b3"></span>
+    </div>
+  </div>
+
+  <!-- Bottom Dance Style Buttons -->
+  <div id="bottom-bar">
+    <button class="dance-btn active" onclick="switchDance('hiphop')">⚡ Hip-Hop Poppin'</button>
+    <button class="dance-btn" onclick="switchDance('disco')">🪩 Saturday Disco</button>
+    <button class="dance-btn" onclick="switchDance('wave')">🌊 Liquid 3D Wave</button>
+    <button class="dance-btn" onclick="switchDance('walk')">🚶 Funky Walk</button>
+    <button class="dance-btn" onclick="switchDance('idle')">🧘 Reset Idle</button>
+    <button class="dance-btn" onclick="toggleAudio()">🎵 Beat: ON</button>
+  </div>
+</div>
+
+<!-- Right Side Panel -->
+<div id="side-panel">
+  <div>
+    <div class="panel-section-title">CAMERA PERSPECTIVE</div>
+    <div class="cam-btn-grid">
+      <button class="cam-btn" onclick="setCamera('full')">Full Body</button>
+      <button class="cam-btn" onclick="setCamera('upper')">Upper / Arms</button>
+      <button class="cam-btn" onclick="setCamera('legs')">Legs / Steps</button>
+      <button class="cam-btn" onclick="setCamera('face')">Face Close-up</button>
+    </div>
+    <p style="font-size: 11px; color: #64748b; margin-top: 6px;">
+      💡 Tip: Click & drag on 3D view to orbit 360°. Scroll to zoom.
+    </p>
+  </div>
+
+  <div>
+    <div class="panel-section-title">LIVE 3D BONE ROTATION RADAR</div>
+    <div class="bone-monitor-box" id="bone-monitor">
+      Loading 99 bones...
+    </div>
+  </div>
+
+  <div style="background: #090e1a; border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.5;">
+    <strong style="color: #38bdf8;">3D Rig Kinematics:</strong><br>
+    • Rig: 99 Anatomical Joints<br>
+    • Spine: Hips, Spine, Spine1, Spine2<br>
+    • Arms: Clavicle, Humerus, Ulna, Hand<br>
+    • Fingers: Thumb, Index, Middle, Ring, Pinky (1-3)<br>
+    • Legs: UpLeg (Femur), Leg (Tibia), Foot, ToeBase
+  </div>
+</div>
+
+<audio id="dance-audio" src="audio/dance_beat.mp3" loop preload="auto"></audio>
+
+<script>
+  // ── Three.js Scene Setup ─────────────────────────────────────
+  const canvas = document.getElementById('c');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x040714);
+  scene.fog = new THREE.FogExp2(0x040714, 0.08);
+
+  const camera = new THREE.PerspectiveCamera(40, (window.innerWidth - 320) / window.innerHeight, 0.1, 50);
+  camera.position.set(0, 1.25, 3.2);
+  camera.lookAt(0, 1.0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(window.innerWidth - 320, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  window.addEventListener('resize', () => {
+    camera.aspect = (window.innerWidth - 320) / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth - 320, window.innerHeight);
+  });
+
+  // Lighting — Neon Club Party Atmosphere
+  const spotPink = new THREE.SpotLight(0xec4899, 4.5, 12, Math.PI / 4, 0.4);
+  spotPink.position.set(-2.5, 3.5, 2);
+  spotPink.castShadow = true;
+  scene.add(spotPink);
+
+  const spotCyan = new THREE.SpotLight(0x38bdf8, 4.5, 12, Math.PI / 4, 0.4);
+  spotCyan.position.set(2.5, 3.5, 2);
+  spotCyan.castShadow = true;
+  scene.add(spotCyan);
+
+  const rimYellow = new THREE.DirectionalLight(0xfacc15, 1.8);
+  rimYellow.position.set(0, 3, -3);
+  scene.add(rimYellow);
+
+  const ambientLight = new THREE.AmbientLight(0x0f172a, 1.4);
+  scene.add(ambientLight);
+
+  // Reflective Dance Floor with Glowing Neon Grid
+  const floorGeo = new THREE.PlaneGeometry(16, 16, 16, 16);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x060a14,
+    roughness: 0.25,
+    metalness: 0.75,
+    wireframe: false
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const floorGrid = new THREE.GridHelper(16, 32, 0xec4899, 0x1e293b);
+  floorGrid.position.y = 0.005;
+  scene.add(floorGrid);
+
+  // 3D Neon Stage Ring
+  const ringGeo = new THREE.RingGeometry(1.2, 1.28, 48);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+  const stageRing = new THREE.Mesh(ringGeo, ringMat);
+  stageRing.rotation.x = -Math.PI / 2;
+  stageRing.position.y = 0.01;
+  scene.add(stageRing);
+
+  // ── Load 3D Human Model (real_human_male.glb) ────────────────
+  const loader = new THREE.GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  window.bones = {};
+  window.model = null;
+
+  loader.load('scene/models/real_human_male.glb', (gltf) => {
+    const model = gltf.scene;
+    window.model = model;
+    model.scale.set(1, 1, 1);
+    model.position.set(0, 0, 0);
+
+    model.traverse((child) => {
+      if (child.isSkinnedMesh) {
+        child.frustumCulled = false;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          child.material.skinning = true;
+          child.material.roughness = 0.55;
+          child.material.metalness = 0.05;
+        }
+      }
+      if (child.isBone) {
+        child.userData.restX = child.rotation.x;
+        child.userData.restY = child.rotation.y;
+        child.userData.restZ = child.rotation.z;
+        window.bones[child.name] = child;
+      }
+    });
+
+    scene.add(model);
+    console.log('[3D Human Loaded] Total Bones:', Object.keys(window.bones).length);
+    window.danceReady = true;
+
+    // Start default Hip-Hop Dance
+    start3DDance('hiphop');
+  });
+
+  // ── 3D Multi-Bone Kinematic Dance Engine ─────────────────────
+  let currentDanceStyle = 'hiphop';
+  const bpm = 124;
+  const beatTime = 60 / bpm; // ~0.484s
+
+  // Master Kinematics Dance State
+  const dState = {
+    hipY: 0,
+    hipRoll: 0,
+    hipYaw: 0,
+    spineArch: 0,
+    spineRoll: 0,
+    headPitch: 0,
+    headYaw: 0,
+    headRoll: 0,
+    // Right Arm Chain
+    rShoulderY: 0,
+    rArmPitch: 0,
+    rArmYaw: 0,
+    rArmRoll: 0,
+    rForeArmBend: 0,
+    rHandFlex: 0,
+    rFingersClench: 0,
+    // Left Arm Chain
+    lShoulderY: 0,
+    lArmPitch: 0,
+    lArmYaw: 0,
+    lArmRoll: 0,
+    lForeArmBend: 0,
+    lHandFlex: 0,
+    lFingersClench: 0,
+    // Legs
+    rThighPitch: 0,
+    rThighRoll: 0,
+    rKneeBend: 0,
+    rFootFlex: 0,
+    lThighPitch: 0,
+    lThighRoll: 0,
+    lKneeBend: 0,
+    lFootFlex: 0,
+    time: 0
+  };
+
+  let masterDanceTL = null;
+
+  function start3DDance(style) {
+    currentDanceStyle = style;
+    if (masterDanceTL) masterDanceTL.kill();
+    gsap.killTweensOf(dState);
+
+    const b = beatTime;
+    const tl = gsap.timeline({ repeat: -1 });
+
+    if (style === 'disco') {
+      // 🕺 SATURDAY NIGHT DISCO (John Travolta)
+      // Beat 1: Right Arm High 45° Point, Left Hand on Hip, Left Hip Thrust
+      tl.to(dState, {
+        hipY: -0.03, hipRoll: 0.18, hipYaw: -0.15,
+        spineArch: -0.1, spineRoll: -0.12,
+        headPitch: -0.18, headYaw: 0.28, headRoll: 0.12,
+        rShoulderY: 0.15, rArmPitch: -1.75, rArmYaw: 0.45, rArmRoll: -0.55, rForeArmBend: 0.15, rFingersClench: -0.5,
+        lShoulderY: 0, lArmPitch: 0.35, lArmYaw: -0.3, lArmRoll: 0.4, lForeArmBend: 1.45,
+        lThighPitch: 0.22, lKneeBend: 0.55, rThighPitch: -0.1, rKneeBend: 0.05,
+        duration: b, ease: 'power2.out'
+      }, 0);
+
+      // Beat 2: Right Arm Points Down-Left across body, Right Hip Thrust
+      tl.to(dState, {
+        hipY: -0.05, hipRoll: -0.16, hipYaw: 0.12,
+        spineArch: 0.12, spineRoll: 0.15,
+        headPitch: 0.18, headYaw: -0.22,
+        rArmPitch: 0.65, rArmYaw: -0.5, rArmRoll: 0.3, rForeArmBend: 0.45,
+        rThighPitch: 0.25, rKneeBend: 0.6, lThighPitch: -0.08, lKneeBend: 0.08,
+        duration: b, ease: 'power2.inOut'
+      }, b);
+
+      // Beat 3: Left Arm High 45° Point, Right Hand on Hip, Right Hip Thrust
+      tl.to(dState, {
+        hipY: -0.03, hipRoll: -0.18, hipYaw: 0.15,
+        spineArch: -0.1, spineRoll: 0.12,
+        headPitch: -0.18, headYaw: -0.28, headRoll: -0.12,
+        lShoulderY: 0.15, lArmPitch: -1.75, lArmYaw: -0.45, lArmRoll: 0.55, lForeArmBend: 0.15, lFingersClench: -0.5,
+        rShoulderY: 0, rArmPitch: 0.35, rArmYaw: 0.3, rArmRoll: -0.4, rForeArmBend: 1.45,
+        rThighPitch: 0.22, rKneeBend: 0.55, lThighPitch: -0.1, lKneeBend: 0.05,
+        duration: b, ease: 'power2.out'
+      }, b * 2);
+
+      // Beat 4: Left Arm Points Down-Right across body
+      tl.to(dState, {
+        hipY: -0.05, hipRoll: 0.16, hipYaw: -0.12,
+        spineArch: 0.12, spineRoll: -0.15,
+        headPitch: 0.18, headYaw: 0.22,
+        lArmPitch: 0.65, lArmYaw: 0.5, lArmRoll: -0.3, lForeArmBend: 0.45,
+        lThighPitch: 0.25, lKneeBend: 0.6, rThighPitch: -0.08, rKneeBend: 0.08,
+        duration: b, ease: 'power2.inOut'
+      }, b * 3);
+
+    } else if (style === 'wave') {
+      // 🌊 LIQUID 3D WAVE
+      const s = b * 0.4;
+      tl.to(dState, {
+        hipY: -0.02, hipRoll: -0.08,
+        lArmPitch: -0.4, lArmRoll: 0.9, lForeArmBend: 0.4, lFingersClench: 0.8,
+        duration: s, ease: 'sine.inOut'
+      }, 0);
+      tl.to(dState, {
+        spineArch: 0.15, spineRoll: -0.12, headRoll: -0.15, lShoulderY: 0.15,
+        duration: s, ease: 'sine.inOut'
+      }, s * 1);
+      tl.to(dState, {
+        spineArch: -0.12, spineRoll: 0.12, headRoll: 0.15, rShoulderY: 0.15,
+        duration: s, ease: 'sine.inOut'
+      }, s * 2);
+      tl.to(dState, {
+        rArmPitch: -0.4, rArmRoll: -0.9, rForeArmBend: 0.4, rFingersClench: 0.8,
+        hipY: -0.04, rKneeBend: 0.35, lKneeBend: 0.35,
+        duration: s * 1.5, ease: 'sine.inOut'
+      }, s * 3);
+
+    } else if (style === 'walk') {
+      // 🚶 FUNKY WALK CYCLE
+      tl.to(dState, {
+        hipY: 0.03, rThighPitch: 0.45, rKneeBend: 0.65, lThighPitch: -0.35, lKneeBend: 0.1,
+        lArmPitch: -0.5, rArmPitch: 0.4, rForeArmBend: 0.4, lForeArmBend: 0.5,
+        duration: b, ease: 'sine.inOut'
+      }, 0);
+      tl.to(dState, {
+        hipY: 0.03, lThighPitch: 0.45, lKneeBend: 0.65, rThighPitch: -0.35, rKneeBend: 0.1,
+        rArmPitch: -0.5, lArmPitch: 0.4, lForeArmBend: 0.4, rForeArmBend: 0.5,
+        duration: b, ease: 'sine.inOut'
+      }, b);
+
+    } else if (style === 'idle') {
+      // 🧘 RESET IDLE
+      tl.to(dState, {
+        hipY: 0, hipRoll: 0, hipYaw: 0, spineArch: 0, spineRoll: 0, headPitch: 0, headYaw: 0, headRoll: 0,
+        rShoulderY: 0, rArmPitch: 0, rArmYaw: 0, rArmRoll: 0, rForeArmBend: 0, rFingersClench: 0,
+        lShoulderY: 0, lArmPitch: 0, lArmYaw: 0, lArmRoll: 0, lForeArmBend: 0, lFingersClench: 0,
+        rThighPitch: 0, rKneeBend: 0, lThighPitch: 0, lKneeBend: 0,
+        duration: 0.6, ease: 'power2.out'
+      }, 0);
+
+    } else {
+      // ⚡ HIP-HOP POPPIN' & LOCKIN' (Default)
+      // Beat 1: Left Hip Drop + Right Arm High Pump + Head Nod Left
+      tl.to(dState, {
+        hipY: -0.07, hipRoll: 0.14, hipYaw: -0.16,
+        spineArch: 0.08, spineRoll: -0.1,
+        headPitch: 0.22, headYaw: -0.25, headRoll: 0.08,
+        rShoulderY: 0.12, rArmPitch: -1.65, rArmYaw: 0.2, rArmRoll: -0.3, rForeArmBend: 1.25, rFingersClench: 0.8,
+        lShoulderY: -0.05, lArmPitch: 0.45, lArmYaw: -0.2, lArmRoll: 0.2, lForeArmBend: 0.35,
+        lThighPitch: 0.35, lKneeBend: 0.75, rThighPitch: -0.15, rKneeBend: 0.1, rFootFlex: 0.4,
+        duration: b * 0.75, ease: 'back.out(2)'
+      }, 0);
+
+      // Beat 2: Center Chest Pop + Jazz Hands Spread
+      tl.to(dState, {
+        hipY: 0.03, hipRoll: 0, hipYaw: 0,
+        spineArch: -0.22, spineRoll: 0,
+        headPitch: -0.15, headYaw: 0, headRoll: 0,
+        rShoulderY: 0.1, rArmPitch: -0.65, rArmYaw: 0.4, rArmRoll: -0.2, rForeArmBend: 0.85, rFingersClench: -0.8,
+        lShoulderY: 0.1, lArmPitch: -0.65, lArmYaw: -0.4, lArmRoll: 0.2, lForeArmBend: 0.85, lFingersClench: -0.8,
+        lThighPitch: 0.05, lKneeBend: 0.15, rThighPitch: 0.05, rKneeBend: 0.15, rFootFlex: 0,
+        duration: b * 0.6, ease: 'power3.out'
+      }, b);
+
+      // Beat 3: Right Hip Drop + Left Arm High Pump + Head Nod Right
+      tl.to(dState, {
+        hipY: -0.07, hipRoll: -0.14, hipYaw: 0.16,
+        spineArch: 0.08, spineRoll: 0.1,
+        headPitch: 0.22, headYaw: 0.25, headRoll: -0.08,
+        lShoulderY: 0.12, lArmPitch: -1.65, lArmYaw: -0.2, lArmRoll: 0.3, lForeArmBend: 1.25, lFingersClench: 0.8,
+        rShoulderY: -0.05, rArmPitch: 0.45, rArmYaw: 0.2, rArmRoll: -0.2, rForeArmBend: 0.35,
+        rThighPitch: 0.35, rKneeBend: 0.75, lThighPitch: -0.15, lKneeBend: 0.1, lFootFlex: 0.4,
+        duration: b * 0.75, ease: 'back.out(2)'
+      }, b * 2);
+
+      // Beat 4: Low Groovy Squat Bounce + Smooth Reset
+      tl.to(dState, {
+        hipY: -0.09, hipRoll: 0, hipYaw: 0,
+        spineArch: 0.12, spineRoll: 0,
+        headPitch: 0.1, headYaw: 0,
+        rShoulderY: 0, rArmPitch: 0.2, rArmYaw: 0.15, rArmRoll: 0, rForeArmBend: 0.5, rFingersClench: 0,
+        lShoulderY: 0, lArmPitch: 0.2, lArmYaw: -0.15, lArmRoll: 0, lForeArmBend: 0.5, lFingersClench: 0,
+        lThighPitch: 0.45, lKneeBend: 0.85, rThighPitch: 0.45, rKneeBend: 0.85, lFootFlex: 0,
+        duration: b * 0.65, ease: 'sine.inOut'
+      }, b * 3);
+    }
+
+    masterDanceTL = tl;
+  }
+
+  // ── Apply dState to all 99 Bones in Animation Loop ───────────
+  function applyBones() {
+    const b = window.bones;
+    if (!b || !b.Hips || !b.RightArm) return;
+
+    // Hips Position & Orientation
+    if (window.model) {
+      window.model.position.y = dState.hipY;
+    }
+    b.Hips.rotation.z = dState.hipRoll;
+    b.Hips.rotation.y = dState.hipYaw;
+
+    // Spine Chain (Chest Arch & Lateral Lean)
+    if (b.Spine) {
+      b.Spine.rotation.x = b.Spine.userData.restX + dState.spineArch * 0.3;
+      b.Spine.rotation.z = b.Spine.userData.restZ + dState.spineRoll * 0.3;
+    }
+    if (b.Spine1) {
+      b.Spine1.rotation.x = b.Spine1.userData.restX + dState.spineArch * 0.4;
+      b.Spine1.rotation.z = b.Spine1.userData.restZ + dState.spineRoll * 0.4;
+    }
+    if (b.Spine2) {
+      b.Spine2.rotation.x = b.Spine2.userData.restX + dState.spineArch * 0.3;
+      b.Spine2.rotation.z = b.Spine2.userData.restZ + dState.spineRoll * 0.3;
+    }
+
+    // Neck & Head
+    if (b.Neck) {
+      b.Neck.rotation.x = b.Neck.userData.restX + dState.headPitch * 0.35;
+      b.Neck.rotation.y = b.Neck.userData.restY + dState.headYaw * 0.35;
+    }
+    if (b.Head) {
+      b.Head.rotation.x = b.Head.userData.restX + dState.headPitch * 0.65;
+      b.Head.rotation.y = b.Head.userData.restY + dState.headYaw * 0.65;
+      b.Head.rotation.z = b.Head.userData.restZ + dState.headRoll;
+    }
+
+    // Right Arm Chain (Base arm rest + 1.35 brings arm naturally to side)
+    if (b.RightShoulder) b.RightShoulder.position.y = dState.rShoulderY * 0.05;
+    if (b.RightArm) {
+      b.RightArm.rotation.x = b.RightArm.userData.restX + 1.35 + dState.rArmPitch;
+      b.RightArm.rotation.y = b.RightArm.userData.restY + dState.rArmYaw;
+      b.RightArm.rotation.z = b.RightArm.userData.restZ + dState.rArmRoll;
+    }
+    if (b.RightForeArm) {
+      b.RightForeArm.rotation.z = -dState.rForeArmBend * 1.6;
+    }
+    if (b.RightHand) {
+      b.RightHand.rotation.x = dState.rHandFlex;
+    }
+
+    // Right Fingers (Clench into fist or spread in jazz hands)
+    const rFingerNames = [
+      'RightHandThumb1','RightHandThumb2','RightHandThumb3',
+      'RightHandIndex1','RightHandIndex2','RightHandIndex3',
+      'RightHandMiddle1','RightHandMiddle2','RightHandMiddle3',
+      'RightHandRing1','RightHandRing2','RightHandRing3',
+      'RightHandPinky1','RightHandPinky2','RightHandPinky3'
+    ];
+    rFingerNames.forEach(fn => {
+      if (b[fn]) {
+        b[fn].rotation.z = b[fn].userData.restZ + dState.rFingersClench * 0.8;
+      }
+    });
+
+    // Left Arm Chain
+    if (b.LeftShoulder) b.LeftShoulder.position.y = dState.lShoulderY * 0.05;
+    if (b.LeftArm) {
+      b.LeftArm.rotation.x = b.LeftArm.userData.restX + 1.35 + dState.lArmPitch;
+      b.LeftArm.rotation.y = b.LeftArm.userData.restY + dState.lArmYaw;
+      b.LeftArm.rotation.z = b.LeftArm.userData.restZ + dState.lArmRoll;
+    }
+    if (b.LeftForeArm) {
+      b.LeftForeArm.rotation.z = dState.lForeArmBend * 1.6;
+    }
+    if (b.LeftHand) {
+      b.LeftHand.rotation.x = dState.lHandFlex;
+    }
+
+    // Left Fingers
+    const lFingerNames = [
+      'LeftHandThumb1','LeftHandThumb2','LeftHandThumb3',
+      'LeftHandIndex1','LeftHandIndex2','LeftHandIndex3',
+      'LeftHandMiddle1','LeftHandMiddle2','LeftHandMiddle3',
+      'LeftHandRing1','LeftHandRing2','LeftHandRing3',
+      'LeftHandPinky1','LeftHandPinky2','LeftHandPinky3'
+    ];
+    lFingerNames.forEach(fn => {
+      if (b[fn]) {
+        b[fn].rotation.z = b[fn].userData.restZ - dState.lFingersClench * 0.8;
+      }
+    });
+
+    // Right Leg & Foot
+    if (b.RightUpLeg) {
+      b.RightUpLeg.rotation.x = b.RightUpLeg.userData.restX + dState.rThighPitch;
+      b.RightUpLeg.rotation.z = b.RightUpLeg.userData.restZ + dState.rThighRoll;
+    }
+    if (b.RightLeg) {
+      b.RightLeg.rotation.z = b.RightLeg.userData.restZ - dState.rKneeBend * 1.4;
+    }
+    if (b.RightFoot) {
+      b.RightFoot.rotation.x = b.RightFoot.userData.restX + dState.rFootFlex;
+    }
+
+    // Left Leg & Foot
+    if (b.LeftUpLeg) {
+      b.LeftUpLeg.rotation.x = b.LeftUpLeg.userData.restX + dState.lThighPitch;
+      b.LeftUpLeg.rotation.z = b.LeftUpLeg.userData.restZ - dState.lThighRoll;
+    }
+    if (b.LeftLeg) {
+      b.LeftLeg.rotation.z = b.LeftLeg.userData.restZ + dState.lKneeBend * 1.4;
+    }
+    if (b.LeftFoot) {
+      b.LeftFoot.rotation.x = b.LeftFoot.userData.restX + dState.lFootFlex;
+    }
+  }
+
+  // ── Orbit Controls (Mouse Drag & Scroll) ─────────────────────
+  let isDragging = false;
+  let prevMouseX = 0, prevMouseY = 0;
+  let camTheta = 0, camPhi = 0.35, camRadius = 3.2;
+
+  canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+  });
+
+  window.addEventListener('mouseup', () => isDragging = false);
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - prevMouseX;
+    const dy = e.clientY - prevMouseY;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+
+    camTheta -= dx * 0.008;
+    camPhi = Math.max(0.05, Math.min(Math.PI / 2.1, camPhi + dy * 0.008));
+    updateCameraPos();
+  });
+
+  canvas.addEventListener('wheel', (e) => {
+    camRadius = Math.max(1.1, Math.min(6.5, camRadius + e.deltaY * 0.003));
+    updateCameraPos();
+  });
+
+  function updateCameraPos() {
+    camera.position.x = Math.sin(camTheta) * Math.cos(camPhi) * camRadius;
+    camera.position.y = 1.0 + Math.sin(camPhi) * camRadius;
+    camera.position.z = Math.cos(camTheta) * Math.cos(camPhi) * camRadius;
+    camera.lookAt(0, 1.0, 0);
+  }
+
+  // Camera Presets
+  window.setCamera = function(view) {
+    gsap.killTweensOf(camera.position);
+    switch(view) {
+      case 'full':
+        camTheta = 0; camPhi = 0.35; camRadius = 3.2;
+        break;
+      case 'upper':
+        camTheta = 0; camPhi = 0.25; camRadius = 1.8;
+        break;
+      case 'legs':
+        camTheta = 0; camPhi = -0.15; camRadius = 1.9;
+        break;
+      case 'face':
+        camTheta = 0; camPhi = 0.45; camRadius = 0.85;
+        break;
+    }
+    updateCameraPos();
+  };
+
+  // ── Beat & Audio Synchronizer ────────────────────────────────
+  const audio = document.getElementById('dance-audio');
+  const beatDots = [document.getElementById('b0'), document.getElementById('b1'), document.getElementById('b2'), document.getElementById('b3')];
+
+  audio.play().catch(e => console.log('Autoplay muted by browser:', e));
+
+  // Render Loop
+  let frameCount = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+
+    // Apply continuous dance kinematics
+    applyBones();
+
+    // Pulse spotlights & beat counter
+    const curTime = audio.currentTime || 0;
+    const beatIdx = Math.floor((curTime / beatTime) % 4);
+    beatDots.forEach((d, i) => d.classList.toggle('active', i === beatIdx));
+
+    // Dynamic moving party lights
+    spotPink.position.x = -2.5 + Math.sin(curTime * 3) * 0.8;
+    spotCyan.position.x = 2.5 + Math.cos(curTime * 3) * 0.8;
+
+    // Pulse neon stage ring on kick beats
+    const isKick = (beatIdx === 0 || beatIdx === 2);
+    stageRing.scale.set(isKick ? 1.05 : 1.0, isKick ? 1.05 : 1.0, 1);
+
+    // Update Live Bone Monitor HUD (every 10 frames)
+    frameCount++;
+    if (frameCount % 8 === 0 && window.bones && window.bones.Hips) {
+      const b = window.bones;
+      document.getElementById('bone-monitor').innerHTML = `
+        <strong>[CORE BONES]</strong><br>
+        Hips Y: <span class="bone-stat-val">${dState.hipY.toFixed(3)}m</span> | Roll: <span class="bone-stat-val">${dState.hipRoll.toFixed(2)}r</span><br>
+        Spine Arch: <span class="bone-stat-val">${dState.spineArch.toFixed(2)}r</span><br>
+        Head Pitch/Yaw: <span class="bone-stat-val">${dState.headPitch.toFixed(2)} / ${dState.headYaw.toFixed(2)}</span><br><br>
+        <strong>[ARMS & FINGERS]</strong><br>
+        R.Arm Pitch: <span class="bone-stat-val">${dState.rArmPitch.toFixed(2)}</span> | Elbow: <span class="bone-stat-val">${dState.rForeArmBend.toFixed(2)}</span><br>
+        L.Arm Pitch: <span class="bone-stat-val">${dState.lArmPitch.toFixed(2)}</span> | Elbow: <span class="bone-stat-val">${dState.lForeArmBend.toFixed(2)}</span><br>
+        Fingers Clench: <span class="bone-stat-val">${dState.rFingersClench.toFixed(2)}</span><br><br>
+        <strong>[LEGS & FEET]</strong><br>
+        R.Knee Bend: <span class="bone-stat-val">${dState.rKneeBend.toFixed(2)}</span> | Foot: <span class="bone-stat-val">${dState.rFootFlex.toFixed(2)}</span><br>
+        L.Knee Bend: <span class="bone-stat-val">${dState.lKneeBend.toFixed(2)}</span> | Foot: <span class="bone-stat-val">${dState.lFootFlex.toFixed(2)}</span>
+      `;
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Switch Dance
+  window.switchDance = function(style) {
+    document.querySelectorAll('.dance-btn').forEach(b => b.classList.remove('active'));
+    if (window.event && window.event.target) window.event.target.classList.add('active');
+    start3DDance(style);
+  };
+
+  window.toggleAudio = function() {
+    if (audio.paused) {
+      audio.play();
+      if (window.event && window.event.target) window.event.target.textContent = '🎵 Beat: ON';
+    } else {
+      audio.pause();
+      if (window.event && window.event.target) window.event.target.textContent = '🔇 Beat: OFF';
+    }
+  };
+</script>
+</body>
+</html>
+

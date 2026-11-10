@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Smooth GSAP Character Motion Verification</title>
+  <script src="lib/three.min.js"></script>
+  <script src="lib/meshopt_decoder.js"></script>
+  <script src="lib/GLTFLoader.js"></script>
+  <script src="lib/gsap.min.js"></script>
+  <style>
+    body { margin: 0; background: #060913; overflow: hidden; }
+    canvas { width: 1080px; height: 1920px; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  const canvas = document.getElementById('c');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x060913);
+
+  const camera = new THREE.PerspectiveCamera(40, 1080 / 1920, 0.1, 50);
+  camera.position.set(0, 1.45, 3.2);
+  camera.lookAt(0, 1.15, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(1080, 1920);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+
+  // Studio Lighting
+  const moonLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
+  moonLight.position.set(2, 4, 3);
+  moonLight.castShadow = true;
+  scene.add(moonLight);
+
+  scene.add(new THREE.AmbientLight(0x0f172a, 1.2));
+
+  // Floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(12, 12),
+    new THREE.MeshStandardMaterial({ color: 0x0a101d, roughness: 0.4 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const loader = new THREE.GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  window.bones = {};
+  window.model = null;
+
+  // Animatable State driven by GSAP
+  window.characterState = {
+    rArmLift: 0,
+    rArmReach: 0,
+    rArmTwist: 0,
+    rForeArmBend: 0,
+
+    lArmSwing: 0,
+    lForeArmBend: 0,
+
+    headPitch: 0,
+    headYaw: 0,
+    headRoll: 0,
+
+    walkCycle: 0,
+    isWalking: 0,
+    footInspect: 0,
+
+    shiver: 0,
+    breathRate: 2.2,
+    breathAmp: 0.02,
+
+    time: 0
+  };
+
+  loader.load('models/real_human_male.glb', (gltf) => {
+    const model = gltf.scene;
+    window.model = model;
+    model.scale.set(1, 1, 1);
+    model.position.set(0, 0, 0);
+
+    model.traverse((child) => {
+      if (child.isSkinnedMesh) {
+        child.frustumCulled = false;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          child.material.skinning = true;
+          child.material.roughness = 0.65;
+          child.material.metalness = 0.05;
+        }
+      }
+      if (child.isBone) {
+        child.userData.restX = child.rotation.x;
+        child.userData.restY = child.rotation.y;
+        child.userData.restZ = child.rotation.z;
+        window.bones[child.name] = child;
+      }
+    });
+
+    scene.add(model);
+    window.modelReady = true;
+    console.log("Model loaded for motion test!");
+
+    // Build Test GSAP Timeline demonstrating smooth walking & phone lift
+    const tl = gsap.timeline({ repeat: -1 });
+
+    // 0s-3s: Walking forward
+    tl.to(characterState, {
+      isWalking: 1.0,
+      walkCycle: Math.PI * 6,
+      duration: 3.0,
+      ease: "none"
+    }, 0);
+    tl.to(model.position, { z: 0.8, duration: 3.0, ease: "sine.inOut" }, 0);
+
+    // 3s-3.5s: Stop walking
+    tl.to(characterState, { isWalking: 0.0, duration: 0.5, ease: "power2.out" }, 3.0);
+
+    // 3.5s-5.5s: Lift phone to ear smoothly
+    tl.to(characterState, {
+      rArmLift: 1.0,
+      rForeArmBend: 1.0,
+      headRoll: -0.15,
+      headYaw: 0.1,
+      duration: 1.5,
+      ease: "back.out(1.2)"
+    }, 3.5);
+
+    // 5.5s-7.5s: Shiver & fear panting
+    tl.to(characterState, { shiver: 1.0, breathRate: 5.0, breathAmp: 0.05, duration: 1.0 }, 5.5);
+
+    // 7.5s-9.5s: Inspect foot
+    tl.to(characterState, {
+      rArmLift: 0,
+      rForeArmBend: 0,
+      headRoll: 0,
+      headPitch: 0.4,
+      footInspect: 1.0,
+      shiver: 0,
+      duration: 1.5,
+      ease: "power2.inOut"
+    }, 7.5);
+
+    // 9.5s-11s: Reset
+    tl.to(characterState, {
+      footInspect: 0,
+      headPitch: 0,
+      duration: 1.5,
+      ease: "power2.inOut"
+    }, 9.5);
+    tl.to(model.position, { z: 0, duration: 1.5, ease: "power2.inOut" }, 9.5);
+
+    window.testTL = tl;
+  });
+
+  function updateBones() {
+    const b = window.bones;
+    if (!b || !b.RightArm) return;
+    const s = window.characterState;
+    s.time += 0.016;
+
+    // Organic breathing
+    const breath = Math.sin(s.time * s.breathRate) * s.breathAmp;
+    // Organic suspense tremor (high-frequency micro shivering)
+    const shiverVal = s.shiver * (Math.sin(s.time * 40) * 0.018);
+
+    // Head
+    if (b.Head) {
+      b.Head.rotation.x = s.headPitch + breath * 0.3;
+      b.Head.rotation.y = s.headYaw + shiverVal * 0.4;
+      b.Head.rotation.z = s.headRoll;
+    }
+
+    // Walking stride kinematics
+    let rHipAngle = 0, lHipAngle = 0;
+    let rKneeAngle = 0, lKneeAngle = 0;
+    let armSwingL = 0, armSwingR = 0;
+
+    if (s.isWalking > 0.01) {
+      const w = s.walkCycle;
+      const wAmp = s.isWalking * 0.38;
+      rHipAngle = Math.sin(w) * wAmp;
+      lHipAngle = -Math.sin(w) * wAmp;
+
+      // Knee flexes when foot swings forward
+      rKneeAngle = Math.max(0, -Math.sin(w)) * wAmp * 1.2;
+      lKneeAngle = Math.max(0, Math.sin(w)) * wAmp * 1.2;
+
+      // Arm swing during locomotion
+      armSwingL = Math.sin(w) * wAmp * 0.8;
+      armSwingR = -Math.sin(w) * wAmp * 0.8;
+
+      // Subtle pelvis bob
+      if (window.model) {
+        window.model.position.y = Math.abs(Math.sin(w * 2)) * 0.035 * s.isWalking;
+      }
+    } else {
+      if (window.model) window.model.position.y = 0;
+    }
+
+    // Foot inspect override (Beat 9)
+    if (s.footInspect > 0.01) {
+      rHipAngle += s.footInspect * 0.45;
+      rKneeAngle += s.footInspect * 0.65;
+    }
+
+    // Right Arm (smooth blend between relaxed side, walk swing, and phone lift)
+    if (b.RightArm && b.RightForeArm) {
+      const baseArmX = b.RightArm.userData.restX + 1.35;
+      // When lifting to ear: rArmLift goes 0 -> 1
+      const armLiftX = -1.65 * s.rArmLift;
+      const armLiftY = 0.4 * s.rArmLift;
+      const armLiftZ = -0.4 * s.rArmLift;
+
+      b.RightArm.rotation.x = baseArmX + armLiftX + armSwingR + shiverVal;
+      b.RightArm.rotation.y = armLiftY;
+      b.RightArm.rotation.z = armLiftZ;
+
+      // Elbow
+      const baseElbowZ = 0.25;
+      const elbowLiftZ = -2.05 * s.rForeArmBend;
+      b.RightForeArm.rotation.z = baseElbowZ + elbowLiftZ;
+    }
+
+    // Left Arm (relaxed at side with breathing and walk swing)
+    if (b.LeftArm && b.LeftForeArm) {
+      const baseArmX = b.LeftArm.userData.restX + 1.35;
+      b.LeftArm.rotation.x = baseArmX + breath + armSwingL;
+      b.LeftArm.rotation.y = 0;
+      b.LeftArm.rotation.z = 0;
+
+      b.LeftForeArm.rotation.z = -0.25;
+    }
+
+    // Legs
+    if (b.RightUpLeg && b.LeftUpLeg) {
+      b.RightUpLeg.rotation.x = b.RightUpLeg.userData.restX + rHipAngle;
+      b.LeftUpLeg.rotation.x = b.LeftUpLeg.userData.restX + lHipAngle;
+    }
+    if (b.RightLeg && b.LeftLeg) {
+      b.RightLeg.rotation.z = b.RightLeg.userData.restZ - rKneeAngle;
+      b.LeftLeg.rotation.z = b.LeftLeg.userData.restZ + lKneeAngle;
+    }
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    updateBones();
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>
+

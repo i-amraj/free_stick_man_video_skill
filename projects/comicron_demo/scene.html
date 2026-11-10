@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Comicron 1:1 Demo — The Thief Who Stole Left Shoes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  #viewport {
+    width: 1080px;
+    height: 1920px;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 45%, #3e2e28 0%, #241b17 55%, #0e0a08 100%);
+    box-shadow: 0 0 50px rgba(0,0,0,0.9);
+  }
+
+  /* Paper texture overlay */
+  .vignette-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(0,0,0,0.65) 100%);
+    z-index: 50;
+  }
+
+  /* Scene containers */
+  .scene {
+    position: absolute;
+    inset: 0;
+    width: 1080px;
+    height: 1920px;
+    display: none;
+    opacity: 0;
+  }
+  .scene.active {
+    display: block;
+    opacity: 1;
+  }
+
+  .camera-rig {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 50%;
+  }
+
+  /* Comicron character stroke rules */
+  .stroke-main {
+    stroke: #181412;
+    stroke-width: 7px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Subtitles Safe-Zone (y: 75%) */
+  #caption-box {
+    position: absolute;
+    bottom: 280px;
+    left: 90px;
+    right: 90px;
+    z-index: 100;
+    text-align: center;
+    min-height: 140px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .caption-phrase {
+    font-size: 56px;
+    font-weight: 900;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    line-height: 1.25;
+    text-shadow: 
+      0 4px 12px rgba(0,0,0,0.9),
+      0 2px 4px #000,
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .word-span {
+    display: inline-block;
+    transition: transform 0.08s ease, color 0.08s ease;
+  }
+
+  .word-span.active {
+    color: #FFD700;
+    transform: scale(1.18);
+    text-shadow: 
+      0 0 25px rgba(255, 215, 0, 0.6),
+      0 4px 14px rgba(0,0,0,0.9),
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000;
+  }
+
+  /* Watermark / Badge */
+  .channel-badge {
+    position: absolute;
+    top: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    color: rgba(240, 230, 215, 0.45);
+    text-transform: uppercase;
+    z-index: 90;
+  }
+</style>
+<script src="gsap.min.js"></script>
+</head>
+<body>
+
+<div id="viewport">
+  <div class="channel-badge">COMICRON STYLE • 10S DEMO</div>
+  <div class="vignette-overlay"></div>
+
+  <!-- ================= SCENE 1: THE NIGHT THIEF (0.0s - 3.2s) ================= -->
+  <div id="scene1" class="scene active">
+    <div id="camera1" class="camera-rig">
+      <!-- Background Shop Facade -->
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;">
+        <!-- Cobblestone ground -->
+        <rect x="0" y="1350" width="1080" height="570" fill="#1c1613" />
+        <line x1="0" y1="1350" x2="1080" y2="1350" stroke="#100b09" stroke-width="8" />
+        <!-- Cobble stones -->
+        <path d="M 80 1420 C 130 1410, 180 1430, 220 1420 M 340 1400 C 400 1390, 480 1410, 520 1400 M 680 1430 C 740 1410, 820 1420, 870 1410" stroke="#2a201c" stroke-width="4" stroke-linecap="round" fill="none" />
+        <path d="M 120 1550 C 200 1530, 300 1560, 380 1540 M 550 1530 C 650 1510, 750 1540, 850 1530" stroke="#2a201c" stroke-width="4" stroke-linecap="round" fill="none" />
+
+        <!-- Wooden Shop Front -->
+        <rect x="120" y="620" width="840" height="730" fill="#2d221c" stroke="#140f0c" stroke-width="8" />
+        <!-- Wood panel vertical stripes -->
+        <line x1="280" y1="620" x2="280" y2="1350" stroke="#1d1612" stroke-width="4" />
+        <line x1="440" y1="620" x2="440" y2="1350" stroke="#1d1612" stroke-width="4" />
+        <line x1="600" y1="620" x2="600" y2="1350" stroke="#1d1612" stroke-width="4" />
+        <line x1="760" y1="620" x2="760" y2="1350" stroke="#1d1612" stroke-width="4" />
+
+        <!-- Shop Window with subtle yellow light -->
+        <rect x="200" y="760" width="300" height="420" rx="20" fill="#ffd57a" fill-opacity="0.15" stroke="#140f0c" stroke-width="8" />
+        <line x1="350" y1="760" x2="350" y2="1180" stroke="#140f0c" stroke-width="6" />
+        <line x1="200" y1="970" x2="500" y2="970" stroke="#140f0c" stroke-width="6" />
+
+        <!-- Hanging Shop Sign -->
+        <g id="hanging-sign">
+          <line x1="720" y1="620" x2="720" y2="720" stroke="#140f0c" stroke-width="6" />
+          <line x1="880" y1="620" x2="880" y2="720" stroke="#140f0c" stroke-width="6" />
+          <rect x="670" y="720" width="260" height="120" rx="12" fill="#8c6443" stroke="#140f0c" stroke-width="7" />
+          <text x="800" y="770" font-size="28" font-weight="900" fill="#f5ede0" text-anchor="middle">CORVIN'S</text>
+          <text x="800" y="810" font-size="22" font-weight="900" fill="#ffd57a" text-anchor="middle">SHOES</text>
+        </g>
+
+        <!-- Street Lantern Glow -->
+        <circle cx="160" cy="580" r="140" fill="#ffb84d" fill-opacity="0.15" filter="blur(20px)" />
+        <rect x="140" y="540" width="40" height="80" rx="6" fill="#ffd27d" stroke="#140f0c" stroke-width="6" />
+        <line x1="160" y1="500" x2="160" y2="540" stroke="#140f0c" stroke-width="6" />
+      </svg>
+
+      <!-- The Sneaking Thief Character Rig -->
+      <svg id="thief-character" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;">
+        <g id="thief-root" transform="translate(520, 1020)">
+          <!-- Giant Sack of Left Shoes -->
+          <g id="thief-sack" transform="translate(-110, -80)">
+            <ellipse cx="0" cy="0" rx="120" ry="140" fill="#755038" stroke="#181412" stroke-width="7" />
+            <!-- Stolen Shoes sticking out of bag! -->
+            <!-- Shoe 1 (Left shoe) -->
+            <path d="M -70 -130 C -80 -160, -40 -160, -30 -140 L 0 -130 L 10 -110 L -60 -110 Z" fill="#b8834a" stroke="#181412" stroke-width="6" />
+            <!-- Shoe 2 (Left shoe sole) -->
+            <path d="M 20 -150 C 40 -170, 80 -150, 70 -130 L 50 -120 Z" fill="#3a2e26" stroke="#181412" stroke-width="6" />
+            <!-- Left Shoe tag -->
+            <rect x="-40" y="-180" width="70" height="35" rx="5" fill="#f8e4b8" stroke="#181412" stroke-width="4" />
+            <text x="-5" y="-156" font-size="18" font-weight="900" fill="#9e2a2b" text-anchor="middle">LEFT</text>
+          </g>
+
+          <!-- Back Leg -->
+          <path id="thief-leg-l" class="stroke-main" d="M -20 140 L -60 250 L -110 255" fill="none" />
+          
+          <!-- Front Leg (Sneak tiptoe) -->
+          <path id="thief-leg-r" class="stroke-main" d="M 20 140 L 70 230 L 120 260" fill="none" />
+
+          <!-- Body with Hood/Cloak -->
+          <path d="M -40 20 L -60 140 L 50 140 L 40 20 Z" fill="#2e2723" stroke="#181412" stroke-width="7" stroke-linejoin="round" />
+
+          <!-- Arms holding the sack rope -->
+          <path id="thief-arm" class="stroke-main" d="M 20 40 L -50 20 L -90 -20" fill="none" />
+
+          <!-- Head with Thief Hood -->
+          <g id="thief-head" transform="translate(10, -30)">
+            <circle cx="0" cy="0" r="50" fill="#eed9c4" stroke="#181412" stroke-width="7" />
+            <!-- Cloak Hood wrapping head -->
+            <path d="M -50 -10 C -55 -60, 45 -65, 50 -10 C 50 20, 40 45, 10 50 L -45 40 Z" fill="#241e1b" stroke="#181412" stroke-width="7" />
+            <!-- Sly Eyes looking back -->
+            <ellipse cx="-15" cy="5" rx="5" ry="6" fill="#181412" />
+            <ellipse cx="15" cy="5" rx="5" ry="6" fill="#181412" />
+            <!-- Sly smirk -->
+            <path d="M -10 25 Q 5 35 18 20" stroke="#181412" stroke-width="5" stroke-linecap="round" fill="none" />
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ================= SCENE 2: INSIDE THE SHOP (3.2s - 5.3s) ================= -->
+  <div id="scene2" class="scene">
+    <div id="camera2" class="camera-rig">
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;">
+        <!-- Interior Wall -->
+        <rect x="0" y="0" width="1080" height="1920" fill="#30241e" />
+        <!-- Floor -->
+        <rect x="0" y="1300" width="1080" height="620" fill="#1e1612" />
+        <line x1="0" y1="1300" x2="1080" y2="1300" stroke="#100b08" stroke-width="8" />
+
+        <!-- Wooden Shelves -->
+        <rect x="80" y="480" width="920" height="30" fill="#5c402c" stroke="#18120d" stroke-width="7" />
+        <rect x="80" y="800" width="920" height="30" fill="#5c402c" stroke="#18120d" stroke-width="7" />
+        <rect x="80" y="1120" width="920" height="30" fill="#5c402c" stroke="#18120d" stroke-width="7" />
+
+        <!-- Top Shelf: Right shoe present, Left shoe EMPTY! -->
+        <!-- Empty left spot 1 -->
+        <rect x="140" y="400" width="130" height="75" rx="8" fill="none" stroke="#e0a845" stroke-width="4" stroke-dasharray="10 8" />
+        <text x="205" y="445" font-size="34" font-weight="900" fill="#e0a845" text-anchor="middle">MISSING</text>
+        <!-- Right Shoe 1 -->
+        <path d="M 320 450 C 320 420, 360 410, 410 430 L 450 440 L 460 475 L 320 475 Z" fill="#9e4a30" stroke="#18120d" stroke-width="6" />
+        <text x="390" y="465" font-size="18" font-weight="900" fill="#f8e4b8" text-anchor="middle">RIGHT</text>
+
+        <!-- Empty left spot 2 -->
+        <rect x="560" y="400" width="130" height="75" rx="8" fill="none" stroke="#e0a845" stroke-width="4" stroke-dasharray="10 8" />
+        <text x="625" y="445" font-size="34" font-weight="900" fill="#e0a845" text-anchor="middle">MISSING</text>
+        <!-- Right Shoe 2 -->
+        <path d="M 740 450 C 740 420, 780 410, 830 430 L 870 440 L 880 475 L 740 475 Z" fill="#3d5a80" stroke="#18120d" stroke-width="6" />
+        <text x="810" y="465" font-size="18" font-weight="900" fill="#f8e4b8" text-anchor="middle">RIGHT</text>
+
+        <!-- Middle Shelf: More only-right shoes -->
+        <rect x="140" y="720" width="130" height="75" rx="8" fill="none" stroke="#e0a845" stroke-width="4" stroke-dasharray="10 8" />
+        <text x="205" y="765" font-size="34" font-weight="900" fill="#e0a845" text-anchor="middle">?</text>
+        <path d="M 320 770 C 320 740, 360 730, 410 750 L 450 760 L 460 795 L 320 795 Z" fill="#293241" stroke="#18120d" stroke-width="6" />
+
+        <rect x="560" y="720" width="130" height="75" rx="8" fill="none" stroke="#e0a845" stroke-width="4" stroke-dasharray="10 8" />
+        <text x="625" y="765" font-size="34" font-weight="900" fill="#e0a845" text-anchor="middle">?</text>
+        <path d="M 740 770 C 740 740, 780 730, 830 750 L 870 760 L 880 795 L 740 795 Z" fill="#6d597a" stroke="#18120d" stroke-width="6" />
+      </svg>
+
+      <!-- Old Cobbler Corvin Shocked -->
+      <svg id="corvin-character" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;">
+        <g id="corvin-root" transform="translate(540, 1150)">
+          <!-- Legs -->
+          <path class="stroke-main" d="M -30 180 L -35 300 L -70 305" fill="none" />
+          <path class="stroke-main" d="M 30 180 L 35 300 L 70 305" fill="none" />
+
+          <!-- Body with Cobbler Apron -->
+          <path d="M -50 30 L -60 180 L 60 180 L 50 30 Z" fill="#c08552" stroke="#18120d" stroke-width="7" />
+          <!-- Leather Apron Bib -->
+          <path d="M -35 50 L -45 170 L 45 170 L 35 50 Z" fill="#5e3023" stroke="#18120d" stroke-width="5" />
+
+          <!-- Hands holding head in disbelief -->
+          <path id="corvin-arm-l" class="stroke-main" d="M -45 50 L -100 0 L -55 -40" fill="none" />
+          <path id="corvin-arm-r" class="stroke-main" d="M 45 50 L 100 0 L 55 -40" fill="none" />
+
+          <!-- Head (Old man with bald top, spectacles, shocked mouth) -->
+          <g id="corvin-head" transform="translate(0, -60)">
+            <circle cx="0" cy="0" r="55" fill="#f2d7bf" stroke="#18120d" stroke-width="7" />
+            <!-- White hair tufts on sides -->
+            <path d="M -55 -20 C -70 -10, -70 20, -55 25" stroke="#ffffff" stroke-width="12" stroke-linecap="round" fill="none" />
+            <path d="M 55 -20 C 70 -10, 70 20, 55 25" stroke="#ffffff" stroke-width="12" stroke-linecap="round" fill="none" />
+            <!-- Spectacles -->
+            <circle cx="-22" cy="-5" r="16" fill="none" stroke="#18120d" stroke-width="5" />
+            <circle cx="22" cy="-5" r="16" fill="none" stroke="#18120d" stroke-width="5" />
+            <line x1="-6" y1="-5" x2="6" y2="-5" stroke="#18120d" stroke-width="5" />
+            <!-- Shocked Eyes behind spectacles -->
+            <circle cx="-22" cy="-5" r="5" fill="#18120d" />
+            <circle cx="22" cy="-5" r="5" fill="#18120d" />
+            <!-- Wrinkled raised eyebrows -->
+            <path d="M -35 -28 Q -22 -38 -10 -28" stroke="#18120d" stroke-width="5" fill="none" />
+            <path d="M 10 -28 Q 22 -38 35 -28" stroke="#18120d" stroke-width="5" fill="none" />
+            <!-- Big 'O' Shocked Open Mouth -->
+            <ellipse cx="0" cy="28" rx="14" ry="20" fill="#781d1d" stroke="#18120d" stroke-width="5" />
+          </g>
+
+          <!-- Sweat drops popping out of head -->
+          <g id="corvin-sweat">
+            <path d="M -80 -90 Q -95 -80 -85 -65 Q -75 -80 -80 -90" fill="#70d6ff" stroke="#18120d" stroke-width="3" />
+            <path d="M 80 -90 Q 95 -80 85 -65 Q 75 -80 80 -90" fill="#70d6ff" stroke="#18120d" stroke-width="3" />
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ================= SCENE 3: THE LAUGHING GUARDS (5.3s - 10.0s) ================= -->
+  <div id="scene3" class="scene">
+    <div id="camera3" class="camera-rig">
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;">
+        <!-- Castle Outpost Wall -->
+        <rect x="0" y="0" width="1080" height="1920" fill="#24262b" />
+        <!-- Stone Brick Patterns -->
+        <line x1="0" y1="400" x2="1080" y2="400" stroke="#15171a" stroke-width="6" />
+        <line x1="0" y1="800" x2="1080" y2="800" stroke="#15171a" stroke-width="6" />
+        <line x1="0" y1="1200" x2="1080" y2="1200" stroke="#15171a" stroke-width="6" />
+        <line x1="250" y1="400" x2="250" y2="800" stroke="#15171a" stroke-width="6" />
+        <line x1="750" y1="400" x2="750" y2="800" stroke="#15171a" stroke-width="6" />
+        <line x1="500" y1="800" x2="500" y2="1200" stroke="#15171a" stroke-width="6" />
+
+        <!-- Warm Torch on Wall -->
+        <circle cx="540" cy="520" r="180" fill="#ff9f1c" fill-opacity="0.18" filter="blur(30px)" />
+        <rect x="525" y="550" width="30" height="140" fill="#603813" stroke="#120c08" stroke-width="6" />
+        <!-- Torch flame -->
+        <path d="M 525 550 Q 540 450 555 550 Z" fill="#ffe066" stroke="#d90429" stroke-width="5" />
+      </svg>
+
+      <!-- Two Laughing Guards -->
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;">
+        <!-- Guard 1 (Left) -->
+        <g id="guard1" transform="translate(340, 1080)">
+          <!-- Spear -->
+          <line x1="-120" y1="-300" x2="-80" y2="350" stroke="#8d99ae" stroke-width="9" />
+          <path d="M -135 -300 L -120 -380 L -105 -300 Z" fill="#d90429" stroke="#15171a" stroke-width="5" />
+          
+          <!-- Legs -->
+          <path class="stroke-main" d="M -25 160 L -30 300 L -60 305" fill="none" />
+          <path class="stroke-main" d="M 25 160 L 30 300 L 60 305" fill="none" />
+
+          <!-- Armor Tabard -->
+          <path d="M -45 30 L -55 170 L 55 170 L 45 30 Z" fill="#3a506b" stroke="#15171a" stroke-width="7" />
+          <path d="M -15 30 L -15 170 L 15 170 L 15 30 Z" fill="#e63946" />
+
+          <!-- Arm holding belly laughing -->
+          <path id="guard1-arm" class="stroke-main" d="M -45 50 L -90 100 L -20 120" fill="none" />
+
+          <!-- Head with Helmet (Throwing back in laugh) -->
+          <g id="guard1-head" transform="translate(0, -50)">
+            <circle cx="0" cy="0" r="50" fill="#f7d1cd" stroke="#15171a" stroke-width="7" />
+            <!-- Kettle Iron Helmet -->
+            <path d="M -60 -10 C -55 -70, 55 -70, 60 -10 L 75 0 L -75 0 Z" fill="#8d99ae" stroke="#15171a" stroke-width="7" />
+            <!-- Laughing squint eyes -->
+            <path d="M -30 0 Q -20 -10 -10 0" stroke="#15171a" stroke-width="5" stroke-linecap="round" fill="none" />
+            <path d="M 10 0 Q 20 -10 30 0" stroke="#15171a" stroke-width="5" stroke-linecap="round" fill="none" />
+            <!-- Huge belly laughing wide open mouth -->
+            <path d="M -25 15 Q 0 50 25 15 Z" fill="#780000" stroke="#15171a" stroke-width="5" />
+            <!-- Laughing tongue -->
+            <circle cx="0" cy="30" r="10" fill="#e63946" />
+          </g>
+          <!-- Laughing Tears -->
+          <circle cx="45" cy="-60" r="7" fill="#70d6ff" />
+          <circle cx="-45" cy="-60" r="7" fill="#70d6ff" />
+        </g>
+
+        <!-- Guard 2 (Right) -->
+        <g id="guard2" transform="translate(740, 1080)">
+          <!-- Spear -->
+          <line x1="80" y1="-300" x2="120" y2="350" stroke="#8d99ae" stroke-width="9" />
+          <path d="M 65 -300 L 80 -380 L 95 -300 Z" fill="#d90429" stroke="#15171a" stroke-width="5" />
+
+          <!-- Legs -->
+          <path class="stroke-main" d="M -25 160 L -30 300 L -60 305" fill="none" />
+          <path class="stroke-main" d="M 25 160 L 30 300 L 60 305" fill="none" />
+
+          <!-- Armor Tabard -->
+          <path d="M -45 30 L -55 170 L 55 170 L 45 30 Z" fill="#3a506b" stroke="#15171a" stroke-width="7" />
+          <path d="M -15 30 L -15 170 L 15 170 L 15 30 Z" fill="#e63946" />
+
+          <!-- Arm pointing mockingly -->
+          <path id="guard2-arm" class="stroke-main" d="M 45 50 L -60 40 L -110 30" fill="none" />
+
+          <!-- Head (Tilted back laughing) -->
+          <g id="guard2-head" transform="translate(0, -50)">
+            <circle cx="0" cy="0" r="50" fill="#f7d1cd" stroke="#15171a" stroke-width="7" />
+            <!-- Kettle Iron Helmet -->
+            <path d="M -60 -10 C -55 -70, 55 -70, 60 -10 L 75 0 L -75 0 Z" fill="#8d99ae" stroke="#15171a" stroke-width="7" />
+            <!-- Laughing squint eyes -->
+            <path d="M -30 0 Q -20 -10 -10 0" stroke="#15171a" stroke-width="5" stroke-linecap="round" fill="none" />
+            <path d="M 10 0 Q 20 -10 30 0" stroke="#15171a" stroke-width="5" stroke-linecap="round" fill="none" />
+            <!-- Wide open laugh mouth -->
+            <path d="M -25 15 Q 0 50 25 15 Z" fill="#780000" stroke="#15171a" stroke-width="5" />
+            <circle cx="0" cy="30" r="10" fill="#e63946" />
+          </g>
+          <circle cx="-45" cy="-60" r="7" fill="#70d6ff" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ================= SUBTITLES OVERLAY (KINETIC TYPOGRAPHY) ================= -->
+  <div id="caption-box">
+    <div id="caption-display" class="caption-phrase"></div>
+  </div>
+
+</div>
+
+<script>
+  // Timed word dictionary from Whisper
+  const WORD_TIMINGS = [
+    { word: "Every", start: 0.5, end: 0.8 },
+    { word: "night,", start: 0.8, end: 1.04 },
+    { word: "a", start: 1.4, end: 1.5 },
+    { word: "thief", start: 1.5, end: 1.7 },
+    { word: "broke", start: 1.7, end: 2.02 },
+    { word: "into", start: 2.02, end: 2.32 },
+    { word: "a", start: 2.32, end: 2.5 },
+    { word: "shoe", start: 2.5, end: 2.72 },
+    { word: "shop", start: 2.72, end: 3.15 },
+
+    { word: "and", start: 3.15, end: 3.4 },
+    { word: "stole", start: 3.4, end: 3.65 },
+    { word: "only", start: 3.65, end: 3.9 },
+    { word: "the", start: 3.9, end: 4.1 },
+    { word: "left", start: 4.1, end: 4.45 },
+    { word: "shoes.", start: 4.45, end: 5.2 },
+
+    { word: "The", start: 5.34, end: 5.6 },
+    { word: "guards", start: 5.6, end: 5.88 },
+    { word: "laughed:", start: 5.88, end: 6.6 },
+
+    { word: "We're", start: 6.76, end: 6.96 },
+    { word: "hunting", start: 6.96, end: 7.2 },
+    { word: "a", start: 7.2, end: 7.4 },
+    { word: "man", start: 7.4, end: 7.58 },
+    { word: "with", start: 7.58, end: 7.8 },
+    { word: "one", start: 7.8, end: 8.04 },
+    { word: "leg!", start: 8.04, end: 9.8 }
+  ];
+
+  // Group phrases for display
+  const PHRASES = [
+    { start: 0.4, end: 3.15, text: ["EVERY", "NIGHT,", "A", "THIEF", "BROKE", "INTO", "A", "SHOE", "SHOP"] },
+    { start: 3.15, end: 5.25, text: ["AND", "STOLE", "ONLY", "THE", "LEFT", "SHOES."] },
+    { start: 5.3, end: 6.65, text: ["THE", "GUARDS", "LAUGHED:"] },
+    { start: 6.7, end: 9.9, text: ["\"WE'RE", "HUNTING", "A", "MAN", "WITH", "ONE", "LEG!\""] }
+  ];
+
+  // Master GSAP Animation
+  const tl = gsap.timeline({ paused: true });
+
+  // SCENE 1 (0.0s - 3.2s): Camera push-in + Thief Sneak
+  tl.to("#camera1", { scale: 1.08, y: -20, duration: 3.2, ease: "none" }, 0);
+  tl.to("#thief-root", { x: "-=180", duration: 3.2, ease: "none" }, 0);
+  // Thief sneaking bob & head tilt
+  tl.to("#thief-root", { y: "+=15", repeat: 6, yoyo: true, duration: 0.25, ease: "sine.inOut" }, 0);
+  tl.to("#thief-sack", { rotation: 8, repeat: 6, yoyo: true, duration: 0.25, ease: "sine.inOut" }, 0);
+  tl.to("#thief-head", { rotation: -6, repeat: 4, yoyo: true, duration: 0.4, ease: "sine.inOut" }, 0);
+
+  // SCENE 2 (3.2s - 5.3s): Punch-cut to Shop Interior + Corvin Shocked
+  tl.to("#camera2", { scale: 1.10, y: -30, duration: 2.1, ease: "none" }, 3.2);
+  tl.to("#corvin-head", { y: "-=12", rotation: 4, repeat: 3, yoyo: true, duration: 0.35, ease: "power1.inOut" }, 3.2);
+  tl.to("#corvin-arm-l", { rotation: 8, repeat: 4, yoyo: true, duration: 0.25, transformOrigin: "-45px 50px" }, 3.2);
+  tl.to("#corvin-arm-r", { rotation: -8, repeat: 4, yoyo: true, duration: 0.25, transformOrigin: "45px 50px" }, 3.2);
+  tl.to("#corvin-sweat", { opacity: 0.2, repeat: 5, yoyo: true, duration: 0.2 }, 3.2);
+
+  // SCENE 3 (5.3s - 10.0s): Punch-cut to Laughing Guards
+  tl.to("#camera3", { scale: 1.12, y: -40, duration: 4.7, ease: "none" }, 5.3);
+  // Guard 1 Belly Laugh
+  tl.to("#guard1-head", { rotation: -14, y: "-=25", repeat: 12, yoyo: true, duration: 0.18, ease: "sine.inOut" }, 5.3);
+  tl.to("#guard1-arm", { rotation: 12, repeat: 12, yoyo: true, duration: 0.18, ease: "sine.inOut", transformOrigin: "-45px 50px" }, 5.3);
+  // Guard 2 Point & Laugh
+  tl.to("#guard2-head", { rotation: 14, y: "-=20", repeat: 11, yoyo: true, duration: 0.2, ease: "sine.inOut" }, 5.4);
+  tl.to("#guard2-arm", { rotation: -15, repeat: 11, yoyo: true, duration: 0.2, ease: "sine.inOut", transformOrigin: "45px 50px" }, 5.4);
+
+  // Global function for deterministic frame seeking
+  window.seekToTime = function(t) {
+    // 1. Update GSAP Timeline
+    tl.time(t);
+
+    // 2. Switch Scenes cleanly
+    const s1 = document.getElementById("scene1");
+    const s2 = document.getElementById("scene2");
+    const s3 = document.getElementById("scene3");
+
+    if (t < 3.2) {
+      s1.classList.add("active");
+      s2.classList.remove("active");
+      s3.classList.remove("active");
+    } else if (t < 5.3) {
+      s1.classList.remove("active");
+      s2.classList.add("active");
+      s3.classList.remove("active");
+    } else {
+      s1.classList.remove("active");
+      s2.classList.remove("active");
+      s3.classList.add("active");
+    }
+
+    // 3. Update Captions Overlay
+    const display = document.getElementById("caption-display");
+    let activePhrase = PHRASES.find(p => t >= p.start && t < p.end);
+    
+    if (activePhrase) {
+      let html = "";
+      for (let w of activePhrase.text) {
+        // Find matching timing
+        const cleanW = w.replace(/[^a-zA-Z]/g, "").toLowerCase();
+        const timed = WORD_TIMINGS.find(item => item.word.toLowerCase().includes(cleanW));
+        const isActive = timed && t >= timed.start && t <= timed.end;
+        html += `<span class="word-span ${isActive ? 'active' : ''}">${w}</span>`;
+      }
+      display.innerHTML = html;
+    } else {
+      display.innerHTML = "";
+    }
+  };
+
+  // Initial call at t=0
+  window.seekToTime(0);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>character-animation demo</title>
+<style>html,body{margin:0;height:100%;background:#0b1020;display:flex;justify-content:center}svg{height:100vh;aspect-ratio:9/16}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script></head>
+<body>
+<svg class="stage" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script src="rig.js"></script><script src="props.js"></script>
+<script>
+const svg = document.querySelector('.stage'), tl = gsap.timeline({ paused: true }), FLOOR = 1650;
+/* background */
+const sky = GK.grad(svg,'l',[[0,'#1e1b4b'],[1,'#3b2f6b']],{x1:0,y1:0,x2:0,y2:1});
+GK.el('rect',{width:1080,height:1920,fill:sky},svg);
+GK.el('rect',{x:0,y:FLOOR,width:1080,height:270,fill:'#2b2a4a'},svg);
+const back = GK.el('g',{},svg), mid = GK.el('g',{},svg), front = GK.el('g',{},svg);
+GK.P.window(back,{x:230,y:1130}); GK.P.clock(back,{x:540,y:620,r:60}); GK.P.lamp(back,{x:960,y:FLOOR});
+GK.P.chair(back,{x:700,y:FLOOR,view:'side'}); GK.P.chest(back,{x:200,y:FLOOR,s:.9});
+const coins = GK.P.coins(front,{x:880,y:FLOOR+6,n:7});
+
+/* actors */
+const hero = GK.createCharacter(mid,{id:'hero',view:'side',hairStyle:'spiky',shirt:'#2f6fed'});
+const pal  = GK.createCharacter(mid,{id:'pal',view:'front',hairStyle:'long',shirt:'#e11d48',skin:'#c68642'});
+hero.place(-160,FLOOR); pal.place(900,FLOOR); GK.costume.glasses(pal);
+hero.pose(tl,0,'idle',.01); pal.pose(tl,0,'idle',.01);
+hero.autoBlink(tl,0,12,3); pal.autoBlink(tl,0,12,9);
+
+/* 0-2.6 s  hero walks in */
+let t = hero.walk(tl, 0, { toX: 420 });
+hero.expr(tl, t - .3, 'happy');
+/* wave + talk */
+hero.pose(tl, t, 'wave', .35, 'back.out(1.4)'); hero.hand(tl, t, 'R', 'open');
+for (let i = 0; i < 4; i++) hero.part(tl, t + .35 + i * .22, { wrR: i % 2 ? 18 : -18 }, .22);
+hero.talk(tl, [{w:'Hello',s:t+.2,e:t+.7},{w:'my',s:t+.7,e:t+.85},{w:'friend!',s:t+.85,e:t+1.4,stress:true}], { arms:false });
+hero.pose(tl, t + 1.6, 'idle', .3);
+pal.pose(tl, t + .6, 'wave', .35); pal.hand(tl, t + .6, 'R', 'open'); pal.expr(tl, t + .6, 'surprised', .2);
+pal.pose(tl, t + 1.6, 'thinking', .4); pal.expr(tl, t + 1.6, 'thinking', .3); pal.hand(tl, t + 1.6, 'R', 'point');
+/* hero sits on chair and talks */
+t += 2.2;
+t = hero.walk(tl, t, { toX: 700 });
+hero.pose(tl, t, 'sitSide', .5); hero.expr(tl, t, 'smug', .3);
+hero.talk(tl, [{w:'I',s:t+.6,e:t+.7},{w:'found',s:t+.7,e:t+1.1},{w:'SEVEN',s:t+1.1,e:t+1.6,stress:true},{w:'coins',s:t+1.6,e:t+2.1}], { base:'sitSide' });
+pal.pose(tl, t + 1.0, 'shock', .25); pal.expr(tl, t + 1.0, 'surprised', .2); pal.hand(tl, t + 1.0, 'R', 'open');
+/* party dance */
+t += 3.2;
+hero.pose(tl, t, 'idle', .3); hero.face(tl, t, -1);
+pal.pose(tl, t, 'idle', .3); pal.expr(tl, t, 'laugh', .3);
+hero.dance(tl, t + .3, 'disco', 8, 120); pal.dance(tl, t + .3, 'party', 8, 120);
+/* camera: slow push-in (finite) */
+tl.fromTo('.stage', { scale: 1 }, { scale: 1.06, duration: t + 4.5, ease: 'sine.inOut' }, 0);
+window.__tl = tl; tl.play();
+</script></body></html>

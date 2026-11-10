@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920, initial-scale=1.0">
+<title>Comicron 10s Demo - Character Animation Mastery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: #000;
+    width: 1080px; height: 1920px;
+    overflow: hidden;
+    display: flex; justify-content: center; align-items: center;
+    font-family: 'Montserrat', sans-serif;
+  }
+  #viewport {
+    width: 1080px; height: 1920px;
+    position: relative; overflow: hidden;
+    background: #0d0a06;
+  }
+  .scene {
+    position: absolute; top: 0; left: 0;
+    width: 1080px; height: 1920px;
+    display: none !important; opacity: 0;
+    transform-origin: center center;
+  }
+  .scene.active {
+    display: block !important; opacity: 1 !important;
+  }
+  .camera-rig {
+    width: 100%; height: 100%;
+    position: absolute; top: 0; left: 0;
+    transform-origin: 540px 960px;
+  }
+  svg.bg-procedural {
+    position: absolute; top: 0; left: 0;
+    width: 1080px; height: 1920px;
+    pointer-events: none; z-index: 10;
+  }
+  .vignette-overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.65) 100%);
+    pointer-events: none; z-index: 80;
+  }
+  .channel-badge {
+    position: absolute; top: 85px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px; font-weight: 900;
+    letter-spacing: 5px; color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase; z-index: 90;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.85);
+    white-space: nowrap;
+  }
+  #caption-box {
+    position: absolute; bottom: 200px;
+    left: 40px; right: 40px;
+    z-index: 100; text-align: center;
+    pointer-events: none;
+  }
+  .caption-phrase {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 56px; font-weight: 900;
+    color: #ffffff; text-transform: uppercase;
+    letter-spacing: 1.5px; line-height: 1.25;
+    text-shadow: 
+      0 4px 14px rgba(0,0,0,0.95), 0 2px 4px #000,
+      -2px -2px 0 #000,  2px -2px 0 #000,
+      -2px  2px 0 #000,  2px  2px 0 #000;
+    display: flex; flex-wrap: wrap;
+    justify-content: center; align-items: center;
+    gap: 8px 16px;
+  }
+  .word-span {
+    display: inline-block; margin: 0 8px;
+    transition: transform 0.08s ease, color 0.08s ease;
+    white-space: nowrap;
+  }
+  .word-span.active {
+    color: #FFD700; transform: scale(1.18);
+    text-shadow: 
+      0 0 25px rgba(255, 215, 0, 0.8),
+      0 4px 14px rgba(0,0,0,0.95),
+      -2px -2px 0 #000, 2px -2px 0 #000,
+      -2px  2px 0 #000, 2px  2px 0 #000;
+  }
+  svg.character-layer {
+    position: absolute; top: 0; left: 0;
+    width: 1080px; height: 1920px;
+    pointer-events: none; z-index: 70;
+  }
+  .stroke-main { stroke: #121824; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+  .head-white { fill: #ffffff; stroke: #121824; stroke-width: 7; }
+  .guard-blue { fill: #2563eb; stroke: #121824; stroke-width: 7; }
+  .guard-dark { fill: #1d4ed8; stroke: #121824; stroke-width: 7; }
+  .gold-trim { fill: #facc15; stroke: #121824; stroke-width: 6; }
+  .corvin-apron { fill: #854d0e; stroke: #121824; stroke-width: 7; }
+  .corvin-shirt { fill: #cbd5e1; stroke: #121824; stroke-width: 7; }
+  .stranger-cloak { fill: #1e293b; stroke: #121824; stroke-width: 7; }
+  .stranger-scarf { fill: #15803d; stroke: #121824; stroke-width: 6; }
+  .boot-leather { fill: #78350f; stroke: #121824; stroke-width: 6; }
+  .shadow-ground { fill: rgba(10, 15, 25, 0.6); }
+</style>
+<script src="gsap.min.js"></script>
+</head>
+<body>
+
+<div id="viewport">
+  <div class="channel-badge">COMICRON • CHARACTER ANIMATION DEMO</div>
+  <div class="vignette-overlay"></div>
+
+  <!-- ================= SCENE 1: THE NIGHT THIEF (0.0s -> 5.2s) ================= -->
+  <div id="scene1" class="scene active">
+    <div id="camera1" class="camera-rig">
+      <svg class="bg-procedural" viewBox="0 0 1080 1920">
+        
+    <defs>
+      <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#080502"/>
+        <stop offset="45%" stop-color="#150f08"/>
+        <stop offset="100%" stop-color="#201510"/>
+      </linearGradient>
+      <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a0e06"/>
+        <stop offset="100%" stop-color="#4a2a0e"/>
+      </linearGradient>
+      <linearGradient id="ceilGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#030201"/>
+        <stop offset="100%" stop-color="#0d0905"/>
+      </linearGradient>
+      <radialGradient id="lanternCone" cx="0.5" cy="0" r="1">
+        <stop offset="0%" stop-color="#ffe87a" stop-opacity="0.9"/>
+        <stop offset="18%" stop-color="#ff9500" stop-opacity="0.5"/>
+        <stop offset="55%" stop-color="#cc4400" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#440000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="emberGlow" cx="0.5" cy="0.9" r="0.8">
+        <stop offset="0%" stop-color="#ff7700" stop-opacity="0.95"/>
+        <stop offset="35%" stop-color="#ff3300" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#8b0000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="fireAmbient" cx="0.85" cy="0.7" r="0.9">
+        <stop offset="0%" stop-color="#ff6600" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="#440000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="moonRay" cx="0.5" cy="0" r="1.1">
+        <stop offset="0%" stop-color="#c8d8f5" stop-opacity="0.9"/>
+        <stop offset="40%" stop-color="#8ba8d8" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#1a2a4a" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="tableTopGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6b3f1f"/>
+        <stop offset="100%" stop-color="#3d2210"/>
+      </linearGradient>
+      <linearGradient id="tableSideGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2e1508"/>
+        <stop offset="100%" stop-color="#180a04"/>
+      </linearGradient>
+      <linearGradient id="marbleFloor" x1="0" y1="0" x2="0.5" y2="1">
+        <stop offset="0%" stop-color="#2a1a0a"/>
+        <stop offset="100%" stop-color="#5c3317"/>
+      </linearGradient>
+      <pattern id="stoneWall" x="0" y="0" width="140" height="68" patternUnits="userSpaceOnUse">
+        <rect width="140" height="68" fill="#18120b"/>
+        <rect x="2" y="2" width="136" height="30" rx="2" fill="#201810" stroke="#0e0906" stroke-width="1.5"/>
+        <rect x="2" y="36" width="66" height="30" rx="2" fill="#1e1510" stroke="#0e0906" stroke-width="1.5"/>
+        <rect x="72" y="36" width="66" height="30" rx="2" fill="#241a0e" stroke="#0e0906" stroke-width="1.5"/>
+        <line x1="40" y1="2" x2="38" y2="32" stroke="#0a0705" stroke-width="0.5" opacity="0.7"/>
+        <line x1="100" y1="2" x2="102" y2="32" stroke="#0a0705" stroke-width="0.4" opacity="0.5"/>
+        <line x1="30" y1="36" x2="28" y2="66" stroke="#0a0705" stroke-width="0.4" opacity="0.5"/>
+      </pattern>
+      <pattern id="woodFloor" x="0" y="0" width="80" height="12" patternUnits="userSpaceOnUse">
+        <rect width="80" height="12" fill="#3d2210"/>
+        <rect x="0" y="0" width="80" height="11" fill="#422510" stroke="#2a1508" stroke-width="1"/>
+        <line x1="0" y1="4" x2="80" y2="4" stroke="#311a08" stroke-width="0.5" opacity="0.4"/>
+      </pattern>
+      <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+      <filter id="blur4"><feGaussianBlur stdDeviation="4"/></filter>
+      <filter id="blur10"><feGaussianBlur stdDeviation="10"/></filter>
+      <filter id="blur20"><feGaussianBlur stdDeviation="20"/></filter>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="10" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+        
+    <!-- Ceiling -->
+    <rect x="0" y="0" width="1080" height="260" fill="url(#ceilGrad)"/>
+    <rect x="0" y="210" width="1080" height="32" fill="#120e08" opacity="0.95"/>
+    <line x1="0" y1="60" x2="1080" y2="60" stroke="#0e0a06" stroke-width="1.5" opacity="0.5"/>
+    <line x1="0" y1="120" x2="1080" y2="120" stroke="#0e0a06" stroke-width="1.5" opacity="0.5"/>
+
+    <!-- Stone Back Wall -->
+    <rect x="0" y="242" width="1080" height="1000" fill="url(#wallGrad)"/>
+    <rect x="0" y="242" width="1080" height="1000" fill="url(#stoneWall)" opacity="0.6"/>
+
+    <!-- Timber Framing -->
+    <rect x="0" y="242" width="20" height="1000" fill="#120d07" opacity="0.9"/>
+    <rect x="40" y="242" width="12" height="1000" fill="#1a1008" opacity="0.7"/>
+    <rect x="440" y="242" width="16" height="600" fill="#1a1008" opacity="0.6"/>
+    <rect x="1058" y="242" width="22" height="1000" fill="#120d07" opacity="0.9"/>
+    <rect x="0" y="600" width="1080" height="22" fill="#150f07" opacity="0.85"/>
+    <polygon points="0,620 180,760 180,782 0,642" fill="#120d06" opacity="0.8"/>
+
+    <!-- Arched Window with Moonlight -->
+    <path d="M110,185 Q110,100 220,100 Q330,100 330,185 L330,490 L110,490 Z" fill="#28190e" stroke="#0e0906" stroke-width="8"/>
+    <path d="M120,195 Q120,110 220,110 Q320,110 320,195 L320,480 L120,480 Z" fill="url(#moonRay)"/>
+    <line x1="220" y1="110" x2="220" y2="480" stroke="#28190e" stroke-width="10"/>
+    <line x1="120" y1="310" x2="320" y2="310" stroke="#28190e" stroke-width="10"/>
+    <rect x="100" y="480" width="240" height="22" rx="4" fill="#2e1e10"/>
+    <polygon points="110,490 330,490 580,1920 -120,1920" fill="url(#moonRay)" opacity="0.14" filter="url(#blur4)"/>
+    <circle cx="220" cy="80" r="55" fill="#c8d8f5" opacity="0.5" filter="url(#blur10)"/>
+
+    <!-- Stone Fireplace with Flames -->
+    <path d="M700,870 Q700,800 820,800 Q940,800 940,870 L940,1130 L700,1130 Z" fill="#2a1a0c" stroke="#150e07" stroke-width="6"/>
+    <rect x="680" y="790" width="280" height="28" rx="4" fill="#3a2415"/>
+    <rect x="664" y="770" width="312" height="24" rx="3" fill="#44301a"/>
+    <path d="M720,878 Q720,840 820,840 Q920,840 920,878 L920,1120 L720,1120 Z" fill="#0a0704"/>
+    <ellipse cx="820" cy="1095" rx="130" ry="28" fill="url(#emberGlow)" filter="url(#blur4)"/>
+    <path id="flame-shop" d="M760,1095 Q768,1040 785,1055 Q793,1010 820,1030 Q840,990 848,1048 Q865,1025 872,1080 Q855,1058 843,1085 Q820,1050 800,1082 Q778,1058 760,1095Z" fill="#ff7700" opacity="0.92" filter="url(#glow)"/>
+    <path id="flame-inner" d="M790,1092 Q796,1052 810,1065 Q820,1035 832,1058 Q845,1038 848,1078 Q835,1062 820,1080 Q806,1065 790,1092Z" fill="#ffdd00" opacity="0.85"/>
+    <rect x="0" y="600" width="1080" height="1320" fill="url(#fireAmbient)"/>
+
+    <!-- Perspective Floor -->
+    <polygon points="0,1920 1080,1920 870,1242 210,1242" fill="url(#marbleFloor)"/>
+    <polygon points="0,1920 1080,1920 870,1242 210,1242" fill="url(#woodFloor)" opacity="0.65"/>
+    <line x1="0" y1="1600" x2="1080" y2="1600" stroke="#1a0d05" stroke-width="3" opacity="0.45"/>
+    <line x1="0" y1="1420" x2="1080" y2="1420" stroke="#1a0d05" stroke-width="2.5" opacity="0.4"/>
+    <line x1="540" y1="1242" x2="0" y2="1920" stroke="#120a04" stroke-width="2.5" opacity="0.4"/>
+    <line x1="540" y1="1242" x2="540" y2="1920" stroke="#120a04" stroke-width="2" opacity="0.3"/>
+    <line x1="540" y1="1242" x2="1080" y2="1920" stroke="#120a04" stroke-width="2.5" opacity="0.4"/>
+    <rect x="0" y="1230" width="1080" height="16" fill="#180f07" opacity="0.8"/>
+
+    <!-- Hanging Lantern -->
+    <line x1="540" y1="0" x2="540" y2="195" stroke="#5a4210" stroke-width="5" opacity="0.9"/>
+    <rect x="514" y="212" width="52" height="80" rx="6" fill="#8b6914" stroke="#5a4209" stroke-width="4"/>
+    <rect x="520" y="218" width="16" height="68" rx="3" fill="#ffe87a" opacity="0.88" filter="url(#blur2)"/>
+    <rect x="540" y="218" width="12" height="68" rx="3" fill="#ffdd55" opacity="0.75" filter="url(#blur2)"/>
+    <polygon points="420,308 660,308 940,1920 140,1920" fill="url(#lanternCone)" opacity="0.4"/>
+
+    <!-- Bookshelves on Left Wall -->
+    <rect x="52" y="474" width="310" height="18" rx="3" fill="#3d2210" stroke="#2a1508" stroke-width="2"/>
+    <rect x="66" y="420" width="32" height="54" rx="2" fill="#8b2020" stroke="#5a1010" stroke-width="1.5"/>
+    <rect x="102" y="430" width="28" height="44" rx="2" fill="#1a4a2a" stroke="#0e3018" stroke-width="1.5"/>
+    <rect x="134" y="435" width="26" height="39" rx="2" fill="#3a2a7a" stroke="#26198a" stroke-width="1.5" transform="rotate(-4,147,455)"/>
+    <rect x="210" y="435" width="22" height="28" rx="8" fill="#1a3a1a" opacity="0.92"/>
+    <ellipse cx="221" cy="453" rx="9" ry="10" fill="#00ff88" opacity="0.35" filter="url(#glow)"/>
+
+    <rect x="52" y="668" width="310" height="18" rx="3" fill="#3d2210" stroke="#2a1508" stroke-width="2"/>
+    <rect x="72" y="630" width="10" height="38" rx="2" fill="#6b4a1a" stroke="#3a2008" stroke-width="1.5"/>
+    <rect x="62" y="624" width="30" height="14" rx="3" fill="#5a5a5a" stroke="#2a2a2a" stroke-width="1.5"/>
+    <rect x="230" y="635" width="16" height="30" rx="2" fill="#f5e6c8" stroke="#c8b490" stroke-width="1.5"/>
+    <path id="candle-flame" d="M235,618 Q232,606 238,600 Q244,606 241,618 Z" fill="#ff9900" opacity="0.9" filter="url(#glow)"/>
+
+    <!-- Workbench Table -->
+    <polygon points="80,1500 1000,1500 960,1428 120,1428" fill="url(#tableTopGrad)"/>
+    <rect x="80" y="1500" width="920" height="45" fill="url(#tableSideGrad)"/>
+    <rect x="100" y="1545" width="38" height="280" rx="4" fill="#281408"/>
+    <rect x="942" y="1545" width="38" height="280" rx="4" fill="#281408"/>
+    <line x1="200" y1="1428" x2="180" y2="1500" stroke="#5a3015" stroke-width="1.2" opacity="0.35"/>
+    <line x1="560" y1="1428" x2="540" y2="1500" stroke="#5a3015" stroke-width="1.2" opacity="0.35"/>
+    <line x1="880" y1="1428" x2="860" y2="1500" stroke="#5a3015" stroke-width="1" opacity="0.3"/>
+
+    <!-- Cobbler Table Props -->
+    <g transform="translate(650, 1400) rotate(-8)">
+      <ellipse cx="0" cy="20" rx="58" ry="13" fill="#1a0e06" opacity="0.6"/>
+      <path d="M-58,10 Q-52,-28 -8,-30 Q22,-32 50,-16 Q60,0 55,10 Z" fill="#78350f" stroke="#3a1a06" stroke-width="2.5"/>
+      <path d="M-58,10 Q-58,-6 -32,-10 Q-10,-13 10,-6 Q-10,5 -32,8 Z" fill="#8b4515"/>
+    </g>
+    <rect x="420" y="1400" width="8" height="28" rx="2" fill="#7b5a1a"/>
+    <path d="M220,1415 Q260,1408 310,1418 Q320,1430 300,1440 Q255,1448 215,1435 Z" fill="#5a3010" opacity="0.85"/>
+
+        <!-- Stolen shoe outline on workbench -->
+        <g transform="translate(140, 640)">
+          <path d="M 0 0 C 25 -15, 60 -10, 75 10 C 65 30, 25 28, -5 20 Z" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="6 4" opacity="0.8"/>
+          <text x="35" y="32" font-family="'Montserrat', sans-serif" font-weight="900" font-size="12" fill="#ef4444" text-anchor="middle">STOLEN</text>
+        </g>
+      </svg>
+
+      <svg class="character-layer" viewBox="0 0 1080 1920">
+        <!-- Skylight beam cone -->
+        <polygon points="380,0 700,0 800,1400 280,1400" fill="rgba(255, 255, 255, 0.11)" />
+        <path id="thief-rope" d="M 540 0 L 540 760" stroke="#78553a" stroke-width="8" stroke-dasharray="14 6" />
+
+        <!-- Dangling Thief Character Rig -->
+        <g id="thief-dangler" transform="translate(540, 760)">
+          <!-- Ground shadow -->
+          <ellipse cx="0" cy="850" rx="90" ry="24" class="shadow-ground" opacity="0.6" />
+          <!-- Rope holding hands -->
+          <circle cx="-16" cy="-20" r="14" class="stranger-cloak" />
+          <circle cx="16" cy="-45" r="14" class="stranger-cloak" />
+
+          <g id="thief-body-group">
+            <!-- Torso & Cloak -->
+            <path d="M -45 -10 C -55 80, -70 140, -60 170 C -20 185, 20 185, 60 170 C 70 140, 55 80, 45 -10 Z" class="stranger-cloak" />
+            <path d="M -42 0 Q 0 15 42 0 Q 30 35 0 35 Q -30 35 -42 0 Z" class="stranger-scarf" />
+            <path id="scarf-tail" d="M 15 28 Q 30 70 25 110" stroke="#15803d" stroke-width="12" stroke-linecap="round" fill="none" />
+
+            <!-- Seamless Welded Head (Inside body group, zero gap) -->
+            <g id="thief-head-group" transform="translate(0, -60)">
+              <circle cx="0" cy="0" r="56" class="head-white" />
+              <path d="M -42 -12 C -20 -24, 20 -24, 42 -12 C 45 4, 30 14, 0 10 C -30 14, -45 4, -42 -12 Z" fill="#0f172a" />
+              <!-- Thief Eyes -->
+              <ellipse cx="-18" cy="-5" rx="7" ry="5" fill="#facc15" />
+              <circle cx="-16" cy="-5" r="2.5" fill="#000" />
+              <ellipse cx="18" cy="-5" rx="7" ry="5" fill="#facc15" />
+              <circle cx="20" cy="-5" r="2.5" fill="#000" />
+              <!-- Smirking mouth -->
+              <path d="M -12 25 Q 2 34 18 22" class="stroke-main" fill="none" />
+            </g>
+
+            <!-- Reaching Arm + Hand snatching the Left Shoe -->
+            <g id="thief-arm" transform="translate(-40, 60)">
+              <path d="M 0 0 Q -45 70 -70 140" stroke="#1e293b" stroke-width="18" stroke-linecap="round" fill="none" />
+              <circle cx="-70" cy="140" r="15" fill="#1e293b" />
+              <!-- Detailed Snatched Left Shoe with Laces and Sole -->
+              <g id="snatched-shoe" transform="translate(-85, 140) rotate(-25)">
+                <ellipse cx="25" cy="18" rx="38" ry="10" fill="#2d170a" stroke="#121824" stroke-width="4"/>
+                <path d="M 0 0 C 25 -15, 60 -10, 75 10 C 65 30, 25 28, -5 20 C -15 15, -15 8, 0 0 Z" class="boot-leather" />
+                <line x1="-10" y1="10" x2="-32" y2="10" stroke="#facc15" stroke-width="3.5" stroke-linecap="round"/>
+                <line x1="-10" y1="18" x2="-36" y2="18" stroke="#facc15" stroke-width="3.5" stroke-linecap="round"/>
+                <!-- Glow indication -->
+                <circle cx="30" cy="5" r="35" fill="none" stroke="#facc15" stroke-width="2" stroke-dasharray="5 4" opacity="0.7"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ================= SCENE 2: LAUGHING GUARDS & OLD CORVIN (5.2s -> 10.0s) ================= -->
+  <div id="scene2" class="scene">
+    <div id="camera2" class="camera-rig">
+      <svg class="bg-procedural" viewBox="0 0 1080 1920">
+        
+    <defs>
+      <linearGradient id="skyGradDay" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1e3a8a"/>
+        <stop offset="30%" stop-color="#3b82f6"/>
+        <stop offset="65%" stop-color="#93c5fd"/>
+        <stop offset="100%" stop-color="#fef08a"/>
+      </linearGradient>
+      <linearGradient id="roofGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7f1d1d"/>
+        <stop offset="100%" stop-color="#991b1b"/>
+      </linearGradient>
+      <linearGradient id="housePlaster" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f1f5f9"/>
+        <stop offset="100%" stop-color="#cbd5e1"/>
+      </linearGradient>
+      <pattern id="streetCobble" x="0" y="0" width="60" height="40" patternUnits="userSpaceOnUse">
+        <rect width="60" height="40" fill="#475569"/>
+        <rect x="2" y="2" width="26" height="16" rx="3" fill="#64748b" stroke="#334155" stroke-width="1.5"/>
+        <rect x="32" y="2" width="26" height="16" rx="3" fill="#526071" stroke="#334155" stroke-width="1.5"/>
+        <rect x="2" y="22" width="16" height="16" rx="3" fill="#596879" stroke="#334155" stroke-width="1.5"/>
+        <rect x="22" y="22" width="22" height="16" rx="3" fill="#64748b" stroke="#334155" stroke-width="1.5"/>
+        <rect x="48" y="22" width="10" height="16" rx="3" fill="#526071" stroke="#334155" stroke-width="1.5"/>
+      </pattern>
+      <radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0%" stop-color="#fffbeb" stop-opacity="0.8"/>
+        <stop offset="40%" stop-color="#fef08a" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#fef08a" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+        
+    <!-- Sunny Sky -->
+    <rect x="0" y="0" width="1080" height="1200" fill="url(#skyGradDay)"/>
+    <circle cx="820" cy="220" r="140" fill="url(#sunGlow)"/>
+    <circle cx="820" cy="220" r="45" fill="#fffef0"/>
+
+    <!-- Distant Castle & Village Silhouettes -->
+    <polygon points="120,700 160,540 200,700" fill="#475569" opacity="0.35"/>
+    <polygon points="170,720 220,510 270,720" fill="#475569" opacity="0.4"/>
+    <rect x="185" y="470" width="70" height="180" fill="#475569" opacity="0.4"/>
+    <polygon points="180,470 220,380 260,470" fill="#334155" opacity="0.45"/>
+    <polygon points="780,720 840,490 900,720" fill="#475569" opacity="0.35"/>
+
+    <!-- Left Medieval Timber House -->
+    <polygon points="-40,1400 380,1400 350,560 -40,520" fill="url(#housePlaster)"/>
+    <polygon points="-50,530 180,240 370,570" fill="url(#roofGrad)" stroke="#450a0a" stroke-width="6"/>
+    <!-- Timber Beams (Left House) -->
+    <rect x="340" y="560" width="24" height="840" fill="#2d1a0e"/>
+    <rect x="160" y="560" width="20" height="840" fill="#2d1a0e"/>
+    <line x1="-40" y1="920" x2="360" y2="920" stroke="#2d1a0e" stroke-width="20"/>
+    <line x1="-40" y1="1160" x2="360" y2="1160" stroke="#2d1a0e" stroke-width="18"/>
+    <!-- Cross Braces -->
+    <line x1="0" y1="560" x2="160" y2="920" stroke="#2d1a0e" stroke-width="14"/>
+    <line x1="160" y1="560" x2="0" y2="920" stroke="#2d1a0e" stroke-width="14"/>
+    <line x1="180" y1="560" x2="340" y2="920" stroke="#2d1a0e" stroke-width="14"/>
+    <line x1="340" y1="560" x2="180" y2="920" stroke="#2d1a0e" stroke-width="14"/>
+    <!-- Upper Window -->
+    <rect x="50" y="660" width="80" height="110" rx="4" fill="#0f172a" stroke="#2d1a0e" stroke-width="8"/>
+    <line x1="90" y1="660" x2="90" y2="770" stroke="#2d1a0e" stroke-width="5"/>
+    <line x1="50" y1="715" x2="130" y2="715" stroke="#2d1a0e" stroke-width="5"/>
+    <!-- Flower Box -->
+    <rect x="42" y="770" width="96" height="24" rx="3" fill="#854d0e"/>
+    <circle cx="60" cy="766" r="8" fill="#ef4444"/>
+    <circle cx="75" cy="764" r="9" fill="#facc15"/>
+    <circle cx="95" cy="766" r="8" fill="#ec4899"/>
+    <circle cx="115" cy="764" r="8" fill="#3b82f6"/>
+    <!-- Arched Wooden Door -->
+    <path d="M60,1160 Q60,1050 140,1050 Q220,1050 220,1160 L220,1400 L60,1400 Z" fill="#3b2011" stroke="#1c0f08" stroke-width="8"/>
+    <circle cx="85" cy="1240" r="6" fill="#facc15"/>
+
+    <!-- Right Medieval House / Tavern -->
+    <polygon points="720,1400 1120,1400 1120,480 730,580" fill="#fef3c7"/>
+    <polygon points="710,590 920,290 1130,490" fill="#991b1b" stroke="#450a0a" stroke-width="6"/>
+    <!-- Timber Beams (Right) -->
+    <rect x="730" y="580" width="22" height="820" fill="#2d1a0e"/>
+    <line x1="730" y1="940" x2="1120" y2="940" stroke="#2d1a0e" stroke-width="20"/>
+    <line x1="730" y1="600" x2="940" y2="940" stroke="#2d1a0e" stroke-width="14"/>
+    <line x1="940" y1="600" x2="730" y2="940" stroke="#2d1a0e" stroke-width="14"/>
+    <!-- Hanging Tavern Sign -->
+    <line x1="720" y1="780" x2="640" y2="780" stroke="#1e293b" stroke-width="8"/>
+    <line x1="640" y1="780" x2="720" y2="720" stroke="#1e293b" stroke-width="6"/>
+    <rect x="620" y="795" width="85" height="100" rx="8" fill="#78350f" stroke="#3b1d08" stroke-width="6"/>
+    <text x="662" y="845" font-family="'Montserrat', sans-serif" font-weight="900" font-size="28" fill="#facc15" text-anchor="middle">ALE</text>
+    <path d="M648,860 L678,860 L674,882 L652,882 Z" fill="#fef08a"/>
+
+    <!-- Street Cobblestone Perspective Floor -->
+    <polygon points="0,1920 1080,1920 820,1260 260,1260" fill="url(#streetCobble)"/>
+    <line x1="260" y1="1260" x2="820" y2="1260" stroke="#1e293b" stroke-width="8"/>
+    <line x1="0" y1="1920" x2="260" y2="1260" stroke="#1e293b" stroke-width="5"/>
+    <line x1="1080" y1="1920" x2="820" y2="1260" stroke="#1e293b" stroke-width="5"/>
+    <line x1="0" y1="1620" x2="1080" y2="1620" stroke="#334155" stroke-width="3" opacity="0.6"/>
+    <line x1="0" y1="1440" x2="1080" y2="1440" stroke="#334155" stroke-width="2" opacity="0.5"/>
+
+    <!-- Street Barrels & Props -->
+    <!-- Notice Board: WANTED ONE-LEGGED THIEF -->
+    <g transform="translate(190, 880)">
+      <rect x="0" y="0" width="130" height="150" rx="6" fill="#854d0e" stroke="#3b1d08" stroke-width="4"/>
+      <rect x="10" y="10" width="110" height="130" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <text x="65" y="32" font-family="'Montserrat', sans-serif" font-weight="900" font-size="14" fill="#991b1b" text-anchor="middle">WANTED</text>
+      <text x="65" y="48" font-family="'Montserrat', sans-serif" font-weight="800" font-size="10" fill="#1e293b" text-anchor="middle">ONE-LEGGED THIEF</text>
+      <!-- One-legged stickman sketch -->
+      <circle cx="65" cy="72" r="12" fill="none" stroke="#1e293b" stroke-width="3"/>
+      <line x1="65" y1="84" x2="65" y2="112" stroke="#1e293b" stroke-width="3"/>
+      <line x1="65" y1="92" x2="48" y2="105" stroke="#1e293b" stroke-width="3"/>
+      <line x1="65" y1="92" x2="82" y2="105" stroke="#1e293b" stroke-width="3"/>
+      <!-- Only one leg! -->
+      <line x1="65" y1="112" x2="65" y2="132" stroke="#1e293b" stroke-width="4"/>
+      <ellipse cx="68" cy="132" rx="7" ry="4" fill="#78350f"/>
+    </g>
+
+    <g transform="translate(820, 1340)">
+      <ellipse cx="0" cy="50" rx="35" ry="14" fill="rgba(15,23,42,0.4)"/>
+      <rect x="-30" y="-35" width="60" height="80" rx="16" fill="#78350f" stroke="#3b1d08" stroke-width="4"/>
+      <line x1="-30" y1="-10" x2="30" y2="-10" stroke="#1e293b" stroke-width="5"/>
+      <line x1="-30" y1="20" x2="30" y2="20" stroke="#1e293b" stroke-width="5"/>
+    </g>
+    <g transform="translate(875, 1370)">
+      <ellipse cx="0" cy="40" rx="28" ry="12" fill="rgba(15,23,42,0.4)"/>
+      <rect x="-24" y="-30" width="48" height="65" rx="12" fill="#854d0e" stroke="#3b1d08" stroke-width="4"/>
+      <line x1="-24" y1="-8" x2="24" y2="-8" stroke="#1e293b" stroke-width="4"/>
+      <line x1="-24" y1="16" x2="24" y2="16" stroke="#1e293b" stroke-width="4"/>
+    </g>
+
+
+        <!-- Wanted Poster pinned to town wall -->
+        <g id="wanted-poster-group" transform="translate(130, 1100)">
+          <rect x="0" y="0" width="180" height="250" rx="8" fill="#fef3c7" stroke="#78350f" stroke-width="6"/>
+          <rect x="15" y="15" width="150" height="35" fill="#991b1b" rx="4"/>
+          <text x="90" y="39" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="17" fill="#ffffff">WANTED</text>
+          <!-- One-legged thief sketch -->
+          <circle cx="90" cy="100" r="28" fill="none" stroke="#1c1917" stroke-width="4"/>
+          <line x1="80" y1="96" x2="84" y2="96" stroke="#1c1917" stroke-width="4" stroke-linecap="round"/>
+          <line x1="96" y1="96" x2="100" y2="96" stroke="#1c1917" stroke-width="4" stroke-linecap="round"/>
+          <line x1="90" y1="128" x2="90" y2="180" stroke="#1c1917" stroke-width="5" stroke-linecap="round"/>
+          <line x1="90" y1="180" x2="72" y2="215" stroke="#1c1917" stroke-width="5" stroke-linecap="round"/>
+          <!-- Peg leg / missing other leg -->
+          <line x1="90" y1="180" x2="106" y2="195" stroke="#dc2626" stroke-width="4" stroke-linecap="round" stroke-dasharray="4 3"/>
+          <text x="90" y="235" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="13" fill="#b91c1c">ONE-LEGGED 🦿</text>
+          <!-- Wax seals -->
+          <circle cx="20" cy="10" r="7" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+          <circle cx="160" cy="10" r="7" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+        </g>
+      </svg>
+
+      <svg class="character-layer" viewBox="0 0 1080 1920">
+        <!-- Ground shadows -->
+        <ellipse cx="360" cy="1760" rx="130" ry="32" class="shadow-ground" />
+        <ellipse cx="720" cy="1760" rx="130" ry="32" class="shadow-ground" />
+        <ellipse cx="940" cy="1760" rx="90" ry="24" class="shadow-ground" />
+
+        <!-- ── CHIEF GUARD (WELDED ANATOMY + LAUGHING) ── -->
+        <g id="chief-guard-root" transform="translate(360, 1420)">
+          <!-- Legs with detailed boots -->
+          <line x1="-35" y1="180" x2="-45" y2="320" class="stroke-main" />
+          <line x1="35" y1="180" x2="45" y2="320" class="stroke-main" />
+          <!-- Detailed Guard Boots -->
+          <ellipse cx="-52" cy="335" rx="26" ry="11" fill="#0f172a" stroke="#121824" stroke-width="4"/>
+          <ellipse cx="-64" cy="330" rx="12" ry="9" fill="#0f172a" stroke="#121824" stroke-width="3"/>
+          <ellipse cx="52" cy="335" rx="26" ry="11" fill="#0f172a" stroke="#121824" stroke-width="4"/>
+          <ellipse cx="64" cy="330" rx="12" ry="9" fill="#0f172a" stroke="#121824" stroke-width="3"/>
+
+          <!-- Body with welded collar -->
+          <g id="chief-body">
+            <!-- Overlapping collar bridge: PREVENTS DETACHED HEAD -->
+            <rect x="-30" y="-30" width="60" height="40" rx="10" class="guard-blue" />
+            <rect x="-60" y="0" width="120" height="185" rx="55" class="guard-blue" />
+            <line x1="-58" y1="95" x2="58" y2="95" stroke="#facc15" stroke-width="14" />
+            <rect x="-16" y="86" width="32" height="18" rx="4" class="gold-trim" />
+            <circle cx="-25" cy="45" r="9" class="gold-trim" />
+            <circle cx="-25" cy="65" r="9" class="gold-trim" />
+
+            <!-- Head Group inside Body Group -->
+            <g id="chief-head-rig" transform="translate(0, -60)">
+              <circle cx="0" cy="0" r="62" class="head-white" />
+              <!-- Helmet -->
+              <g id="chief-tophat" transform="translate(0, -52)">
+                <ellipse cx="0" cy="0" rx="90" ry="16" class="guard-dark" />
+                <rect x="-55" y="-120" width="110" height="120" rx="6" class="guard-blue" />
+                <rect x="-55" y="-22" width="110" height="22" fill="#facc15" stroke="#121824" stroke-width="5" />
+                <polygon points="-8,-120 8,-120 0,-140" class="gold-trim" />
+              </g>
+
+              <!-- Happy squint laughing eyes -->
+              <path d="M -34 -8 Q -22 -24 -10 -8" class="stroke-main" stroke-width="6" fill="none" />
+              <path d="M 10 -8 Q 22 -24 34 -8" class="stroke-main" stroke-width="6" fill="none" />
+              <!-- Laugh tears streaming -->
+              <path d="M -38 2 Q -50 20 -40 35" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" fill="none" />
+              <path d="M 38 2 Q 50 20 40 35" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" fill="none" />
+
+              <!-- Open Laughing Mouth -->
+              <g id="chief-mouth" transform="translate(0, 16)">
+                <path d="M -28 0 Q 0 48 28 0 Z" fill="#7f1d1d" stroke="#121824" stroke-width="5" />
+                <path d="M -14 20 Q 0 10 14 20 Q 0 38 -14 20 Z" fill="#ef4444" />
+                <path d="M -20 0 L 20 0 L 15 8 L -15 8 Z" fill="#ffffff" />
+              </g>
+            </g>
+
+            <!-- Clasping Belly Laugh Arms -->
+            <path id="chief-arm-left" d="M -55 35 Q -95 90 -30 115" class="stroke-main" stroke-width="16" fill="none" />
+            <path id="chief-arm-right" d="M 55 35 Q 95 90 30 115" class="stroke-main" stroke-width="16" fill="none" />
+          </g>
+        </g>
+
+        <!-- ── DEPUTY GUARD (LAUGHING SIDE-KICK) ── -->
+        <g id="deputy-guard-root" transform="translate(720, 1420)">
+          <line x1="-30" y1="180" x2="-40" y2="320" class="stroke-main" />
+          <line x1="30" y1="180" x2="40" y2="320" class="stroke-main" />
+          <ellipse cx="-48" cy="335" rx="24" ry="10" fill="#0f172a" stroke="#121824" stroke-width="4"/>
+          <ellipse cx="48" cy="335" rx="24" ry="10" fill="#0f172a" stroke="#121824" stroke-width="4"/>
+
+          <g id="deputy-body">
+            <rect x="-26" y="-30" width="52" height="40" rx="10" class="guard-blue" />
+            <rect x="-50" y="0" width="100" height="175" rx="45" class="guard-blue" />
+            <line x1="-48" y1="90" x2="48" y2="90" stroke="#facc15" stroke-width="12" />
+            <circle cx="-20" cy="45" r="8" class="gold-trim" />
+            <circle cx="-20" cy="65" r="8" class="gold-trim" />
+
+            <!-- Head Group -->
+            <g id="deputy-head-rig" transform="translate(0, -56)">
+              <circle cx="0" cy="0" r="56" class="head-white" />
+              <g id="deputy-tophat" transform="translate(0, -48)">
+                <ellipse cx="0" cy="0" rx="80" ry="14" class="guard-dark" />
+                <rect x="-48" y="-105" width="96" height="105" rx="6" class="guard-blue" />
+                <rect x="-48" y="-20" width="96" height="20" fill="#facc15" stroke="#121824" stroke-width="4" />
+              </g>
+              <!-- Laugh squint eyes & tears -->
+              <path d="M -30 -6 Q -18 -20 -6 -6" class="stroke-main" stroke-width="5" fill="none" />
+              <path d="M 6 -6 Q 18 -20 30 -6" class="stroke-main" stroke-width="5" fill="none" />
+              <path d="M 34 2 Q 45 18 36 30" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" fill="none" />
+              <!-- Laugh mouth -->
+              <path d="M -24 16 Q 0 46 24 16 Z" fill="#7f1d1d" stroke="#121824" stroke-width="4" />
+            </g>
+
+            <path id="deputy-arm-left" d="M -45 35 Q -80 85 -20 110" class="stroke-main" stroke-width="14" fill="none" />
+            <path id="deputy-arm-right" d="M 45 35 Q 80 85 20 110" class="stroke-main" stroke-width="14" fill="none" />
+          </g>
+        </g>
+
+        <!-- ── OLD CORVIN WITH CHALK TALLY SLATE (8.2s -> 10.0s) ── -->
+        <g id="corvin-tally-root" transform="translate(940, 1440)" opacity="0">
+          <!-- Legs & Shoes -->
+          <line x1="-20" y1="160" x2="-25" y2="300" class="stroke-main" />
+          <line x1="20" y1="160" x2="25" y2="300" class="stroke-main" />
+          <ellipse cx="-28" cy="315" rx="22" ry="9" class="boot-leather" />
+          <ellipse cx="28" cy="315" rx="22" ry="9" class="boot-leather" />
+
+          <!-- Corvin Body -->
+          <g id="corvin-body">
+            <rect x="-20" y="-25" width="40" height="35" rx="8" class="corvin-shirt" />
+            <path d="M -36 0 C -42 60, -42 120, -38 160 C -15 168, 15 168, 38 160 C 42 120, 42 60, 36 0 Z" class="corvin-shirt" />
+            <path d="M -26 30 L 26 30 L 32 155 L -32 155 Z" class="corvin-apron" />
+
+            <!-- Corvin Head (Puzzled / Thinking) -->
+            <g id="corvin-head" transform="translate(0, -50)">
+              <circle cx="0" cy="0" r="50" class="head-white" />
+              <!-- Bald hair rim -->
+              <path d="M -48 -5 Q -40 -35 0 -35 Q 40 -35 48 -5" fill="none" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+              <!-- Confused Eyebrows (one up, one down) -->
+              <path d="M -26 -22 Q -16 -30 -6 -24" class="stroke-main" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+              <path d="M 6 -16 Q 16 -16 26 -16" class="stroke-main" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+              <!-- Eyes with looking pupils -->
+              <circle cx="-16" cy="-6" r="5" fill="#121824"/>
+              <circle cx="16" cy="-6" r="5" fill="#121824"/>
+              <circle cx="-14" cy="-8" r="2" fill="#fff"/>
+              <circle cx="18" cy="-8" r="2" fill="#fff"/>
+              <!-- Puzzled mouth -->
+              <path d="M -14 18 Q 0 14 14 20" class="stroke-main" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <!-- Confusion icon floating -->
+              <text x="50" y="-35" font-family="'Montserrat',sans-serif" font-weight="900" font-size="44" fill="#facc15">❓</text>
+            </g>
+
+            <!-- Holding Chalk Tally Slate -->
+            <g id="tally-slate" transform="translate(-80, 40)">
+              <!-- Slate wooden frame -->
+              <rect x="-85" y="-55" width="170" height="110" rx="8" fill="#451a03" stroke="#121824" stroke-width="5"/>
+              <!-- Blackboard slate -->
+              <rect x="-75" y="-45" width="150" height="90" rx="4" fill="#1e293b" stroke="#0f172a" stroke-width="3"/>
+              <!-- Chalk text on slate -->
+              <text x="0" y="-18" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="14" fill="#38bdf8" letter-spacing="1">LEFT SHOES</text>
+              <text x="0" y="8" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="900" font-size="24" fill="#ef4444">0 ❌</text>
+              <text x="0" y="32" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="800" font-size="12" fill="#facc15">RIGHT: 300 ✓</text>
+            </g>
+
+            <!-- Arms holding the slate -->
+            <path d="M -30 25 Q -65 35 -75 40" class="stroke-main" stroke-width="12" fill="none" />
+            <path d="M 30 25 Q 5 50 -10 50" class="stroke-main" stroke-width="12" fill="none" />
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Subtitle display box -->
+  <div id="caption-box"></div>
+</div>
+
+<script>
+const SUBTITLE_CHUNKS = [{"start": 0.0, "end": 1.71, "words": [{"word": "Every", "start": 0.0, "end": 0.3}, {"word": "night", "start": 0.3, "end": 0.5}, {"word": "for", "start": 0.5, "end": 0.74}, {"word": "a", "start": 0.74, "end": 0.86}, {"word": "month,", "start": 0.86, "end": 1.12}, {"word": "a", "start": 1.48, "end": 1.56}], "text": "Every night for a month, a"}, {"start": 1.56, "end": 3.15, "words": [{"word": "thief", "start": 1.56, "end": 1.74}, {"word": "broke", "start": 1.74, "end": 2.04}, {"word": "into", "start": 2.04, "end": 2.34}, {"word": "a", "start": 2.34, "end": 2.48}, {"word": "shoe", "start": 2.48, "end": 2.7}, {"word": "shop", "start": 2.7, "end": 3.0}], "text": "thief broke into a shoe shop"}, {"start": 3.0, "end": 5.050000000000001, "words": [{"word": "and", "start": 3.0, "end": 3.24}, {"word": "stole", "start": 3.24, "end": 3.5}, {"word": "only", "start": 3.5, "end": 4.02}, {"word": "the", "start": 4.02, "end": 4.22}, {"word": "left", "start": 4.22, "end": 4.52}, {"word": "shoes.", "start": 4.52, "end": 4.9}], "text": "and stole only the left shoes."}, {"start": 5.26, "end": 6.15, "words": [{"word": "The", "start": 5.26, "end": 5.36}, {"word": "guards", "start": 5.36, "end": 5.6}, {"word": "laughed.", "start": 5.6, "end": 6.0}], "text": "The guards laughed."}, {"start": 6.38, "end": 8.05, "words": [{"word": "We're", "start": 6.38, "end": 6.5}, {"word": "hunting", "start": 6.5, "end": 6.76}, {"word": "a", "start": 6.76, "end": 6.94}, {"word": "man", "start": 6.94, "end": 7.14}, {"word": "with", "start": 7.14, "end": 7.32}, {"word": "one", "start": 7.32, "end": 7.6}, {"word": "leg.", "start": 7.6, "end": 7.9}], "text": "We're hunting a man with one leg."}, {"start": 8.24, "end": 10.030000000000001, "words": [{"word": "Old", "start": 8.24, "end": 8.44}, {"word": "Corvin", "start": 8.44, "end": 8.82}, {"word": "counted", "start": 8.82, "end": 9.22}, {"word": "what", "start": 9.22, "end": 9.44}, {"word": "was", "start": 9.44, "end": 9.6}, {"word": "left.", "start": 9.6, "end": 9.88}], "text": "Old Corvin counted what was left."}];
+
+function updateSubtitles(t) {
+  const box = document.getElementById("caption-box");
+  const activeChunk = SUBTITLE_CHUNKS.find(c => t >= c.start && t < c.end);
+  if (!activeChunk) {
+    box.innerHTML = "";
+    return;
+  }
+  let html = '<div class="caption-phrase">';
+  activeChunk.words.forEach(w => {
+    const isActive = (t >= w.start && t < w.end);
+    html += `<span class="word-span ${isActive ? 'active' : ''}">${w.word}</span>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// Master GSAP Timeline across 0.0s -> 10.0s
+const masterTimeline = gsap.timeline({ paused: true });
+
+// ================= SCENE 1 TIMELINE (0.0s -> 5.2s) =================
+// Camera 1 slow cinematic push-in
+masterTimeline.to("#camera1", {
+  scale: 1.12, x: -35, y: -45,
+  duration: 5.2, ease: "sine.inOut"
+}, 0);
+
+// Thief rope descent
+masterTimeline.fromTo("#thief-dangler",
+  { y: -200 },
+  { y: 760, duration: 1.8, ease: "power2.out" },
+  0
+);
+masterTimeline.fromTo("#thief-rope",
+  { attr: { d: "M 540 0 L 540 0" } },
+  { attr: { d: "M 540 0 L 540 760" }, duration: 1.8, ease: "power2.out" },
+  0
+);
+
+// Thief reaching arm animation & snatching shoe
+masterTimeline.to("#thief-arm", {
+  rotation: 12, transformOrigin: "0 0",
+  duration: 0.8, yoyo: true, repeat: 3, ease: "sine.inOut"
+}, 1.8);
+
+// Scarf flapping in draft
+masterTimeline.to("#scarf-tail", {
+  attr: { d: "M 15 28 Q 45 65 35 115" },
+  duration: 0.4, yoyo: true, repeat: 10, ease: "sine.inOut"
+}, 0.5);
+
+// ================= SCENE SWITCH AT 5.2s =================
+// Cut-the-curve seamless handoff: deactivate scene 1, activate scene 2
+masterTimeline.call(() => {
+  document.getElementById("scene1").classList.remove("active");
+  document.getElementById("scene2").classList.add("active");
+}, null, 5.2);
+
+// ================= SCENE 2 TIMELINE (5.2s -> 10.0s) =================
+// Camera 2 slow push-in & subtle pan
+masterTimeline.fromTo("#camera2",
+  { scale: 1.0, x: 0, y: 0 },
+  { scale: 1.09, x: -40, y: -20, duration: 4.8, ease: "sine.inOut" },
+  5.2
+);
+
+// Guards Laughing Animation: Bouncing bodies & tilting heads
+masterTimeline.to("#chief-body", {
+  y: "-=18", repeat: 12, yoyo: true, duration: 0.18, ease: "power1.inOut"
+}, 5.2);
+masterTimeline.to("#chief-head-rig", {
+  rotation: 6, transformOrigin: "0 40", repeat: 12, yoyo: true, duration: 0.18, ease: "power1.inOut"
+}, 5.2);
+
+masterTimeline.to("#deputy-body", {
+  y: "-=14", repeat: 12, yoyo: true, duration: 0.20, ease: "power1.inOut"
+}, 5.3);
+masterTimeline.to("#deputy-head-rig", {
+  rotation: -6, transformOrigin: "0 40", repeat: 12, yoyo: true, duration: 0.20, ease: "power1.inOut"
+}, 5.3);
+
+// Wanted poster subtle rustle in the breeze
+masterTimeline.to("#wanted-poster-group", {
+  rotation: 2, transformOrigin: "20px 10px",
+  repeat: 6, yoyo: true, duration: 0.6, ease: "sine.inOut"
+}, 5.2);
+
+// At 8.0s: Old Corvin slides into view with his Chalk Slate
+masterTimeline.to("#corvin-tally-root", {
+  opacity: 1, x: 860, duration: 0.7, ease: "power2.out"
+}, 8.0);
+
+// Old Corvin head shake in disbelief
+masterTimeline.to("#corvin-head", {
+  rotation: 5, transformOrigin: "0 30",
+  repeat: 4, yoyo: true, duration: 0.35, ease: "sine.inOut"
+}, 8.5);
+
+// Deterministic seek function for renderers
+window.seekToTime = function(t) {
+  if (t < 5.2) {
+    document.getElementById("scene1").classList.add("active");
+    document.getElementById("scene2").classList.remove("active");
+  } else {
+    document.getElementById("scene1").classList.remove("active");
+    document.getElementById("scene2").classList.add("active");
+  }
+  masterTimeline.seek(t, false);
+  updateSubtitles(t);
+};
+
+// Initialize at t=0
+window.seekToTime(0);
+</script>
+</body>
+</html>

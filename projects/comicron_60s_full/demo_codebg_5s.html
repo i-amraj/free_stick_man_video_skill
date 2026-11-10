@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920, initial-scale=1.0">
+<title>Comicron — Procedural BG Demo 5s</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: #000;
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #viewport {
+    width: 1080px;
+    height: 1920px;
+    position: relative;
+    overflow: hidden;
+    background: #0d0a06;
+  }
+  .camera-rig {
+    width: 1080px;
+    height: 1920px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: 540px 960px;
+  }
+  /* Vignette overlay */
+  .vignette {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1080px; height: 1920px;
+    background: radial-gradient(ellipse 85% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.78) 100%);
+    pointer-events: none;
+    z-index: 80;
+  }
+  /* Channel badge */
+  .channel-badge {
+    position: absolute;
+    top: 85px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    color: rgba(255,255,255,0.65);
+    text-transform: uppercase;
+    z-index: 90;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.85);
+    white-space: nowrap;
+  }
+  /* Subtitle */
+  #caption-box {
+    position: absolute;
+    bottom: 220px;
+    left: 40px; right: 40px;
+    z-index: 100;
+    text-align: center;
+    pointer-events: none;
+  }
+  .caption-phrase {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 54px;
+    font-weight: 900;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    line-height: 1.25;
+    text-shadow:
+      0 4px 14px rgba(0,0,0,0.95),
+      0 2px 4px #000,
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px 16px;
+  }
+  .word-span {
+    display: inline-block;
+    margin: 0 8px;
+    transition: transform 0.08s ease, color 0.08s ease;
+    white-space: nowrap;
+  }
+  .word-span.active {
+    color: #FFD700;
+    transform: scale(1.18);
+    text-shadow:
+      0 0 25px rgba(255,215,0,0.8),
+      0 4px 14px rgba(0,0,0,0.95),
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000;
+  }
+  /* Character layer SVG */
+  svg.char-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1080px; height: 1920px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  /* Character style classes */
+  .stroke-main { stroke: #121824; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+  .head-white  { fill: #ffffff; stroke: #121824; stroke-width: 7; }
+  .stranger-cloak { fill: #1e293b; stroke: #121824; stroke-width: 7; }
+  .stranger-scarf { fill: #15803d; stroke: #121824; stroke-width: 6; }
+  .boot-leather   { fill: #78350f; stroke: #121824; stroke-width: 6; }
+  .shadow-ground  { fill: rgba(10,15,25,0.5); }
+</style>
+<script src="gsap.min.js"></script>
+</head>
+<body>
+<div id="viewport">
+
+  <!-- ============================================================
+       PROCEDURAL BACKGROUND — 100% SVG / NO IMAGE FILES
+       Medieval Cobbler Workshop Interior — Night Scene
+       ============================================================ -->
+  <div class="camera-rig" id="cam-main">
+  <svg id="bg-procedural"
+       xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 1080 1920"
+       width="1080" height="1920"
+       style="position:absolute;top:0;left:0;z-index:0;pointer-events:none;">
+    <defs>
+      <!-- ═══ GRADIENTS ═══ -->
+      <!-- Wall vertical gradient (dark top → warm bottom) -->
+      <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#06040200"/>
+        <stop offset="0%"   stop-color="#06040200"/><!-- trick: skip -->
+        <stop offset="0%"   stop-color="#080502"/>
+        <stop offset="45%"  stop-color="#150f08"/>
+        <stop offset="100%" stop-color="#201510"/>
+      </linearGradient>
+      <!-- Floor gradient (far=dark, near=warm bright) -->
+      <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#1a0e06"/>
+        <stop offset="100%" stop-color="#4a2a0e"/>
+      </linearGradient>
+      <!-- Ceiling gradient -->
+      <linearGradient id="ceilGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#030201"/>
+        <stop offset="100%" stop-color="#0d0905"/>
+      </linearGradient>
+      <!-- Lantern warm glow cone -->
+      <radialGradient id="lanternCone" cx="0.5" cy="0" r="1">
+        <stop offset="0%"   stop-color="#ffe87a" stop-opacity="0.9"/>
+        <stop offset="18%"  stop-color="#ff9500" stop-opacity="0.5"/>
+        <stop offset="55%"  stop-color="#cc4400" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#440000" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Fire ember glow -->
+      <radialGradient id="emberGlow" cx="0.5" cy="0.9" r="0.8">
+        <stop offset="0%"   stop-color="#ff7700" stop-opacity="0.95"/>
+        <stop offset="35%"  stop-color="#ff3300" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#8b0000" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Fireplace room fill (ambient orange) -->
+      <radialGradient id="fireAmbient" cx="0.85" cy="0.7" r="0.9">
+        <stop offset="0%"   stop-color="#ff6600" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="#440000" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Window moonlight gradient -->
+      <radialGradient id="moonRay" cx="0.5" cy="0" r="1.1">
+        <stop offset="0%"   stop-color="#c8d8f5" stop-opacity="0.9"/>
+        <stop offset="40%"  stop-color="#8ba8d8" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#1a2a4a" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Vignette -->
+      <radialGradient id="bgVignette" cx="0.5" cy="0.5" r="0.85">
+        <stop offset="0%"   stop-color="#000" stop-opacity="0"/>
+        <stop offset="68%"  stop-color="#000" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0.82"/>
+      </radialGradient>
+      <!-- Table top -->
+      <linearGradient id="tableTopGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#6b3f1f"/>
+        <stop offset="100%" stop-color="#3d2210"/>
+      </linearGradient>
+      <linearGradient id="tableSideGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#2e1508"/>
+        <stop offset="100%" stop-color="#180a04"/>
+      </linearGradient>
+      <!-- Marble floor tile -->
+      <linearGradient id="marbleFloor" x1="0" y1="0" x2="0.5" y2="1">
+        <stop offset="0%"   stop-color="#2a1a0a"/>
+        <stop offset="100%" stop-color="#5c3317"/>
+      </linearGradient>
+
+      <!-- ═══ PATTERNS ═══ -->
+      <!-- Stone wall blocks -->
+      <pattern id="stoneWall" x="0" y="0" width="140" height="68" patternUnits="userSpaceOnUse">
+        <rect width="140" height="68" fill="#18120b"/>
+        <rect x="2"  y="2"  width="136" height="30" rx="2" fill="#201810" stroke="#0e0906" stroke-width="1.5"/>
+        <rect x="2"  y="36" width="66"  height="30" rx="2" fill="#1e1510" stroke="#0e0906" stroke-width="1.5"/>
+        <rect x="72" y="36" width="66"  height="30" rx="2" fill="#241a0e" stroke="#0e0906" stroke-width="1.5"/>
+        <line x1="40"  y1="2"  x2="38"  y2="32" stroke="#0a0705" stroke-width="0.5" opacity="0.7"/>
+        <line x1="100" y1="2"  x2="102" y2="32" stroke="#0a0705" stroke-width="0.4" opacity="0.5"/>
+        <line x1="30"  y1="36" x2="28"  y2="66" stroke="#0a0705" stroke-width="0.4" opacity="0.5"/>
+      </pattern>
+      <!-- Wood floor planks (applied to floor polygon via transform) -->
+      <pattern id="woodFloor" x="0" y="0" width="80" height="12" patternUnits="userSpaceOnUse">
+        <rect width="80" height="12" fill="#3d2210"/>
+        <rect x="0" y="0" width="80" height="11" fill="#422510" stroke="#2a1508" stroke-width="1"/>
+        <line x1="0" y1="4" x2="80" y2="4" stroke="#311a08" stroke-width="0.5" opacity="0.4"/>
+        <line x1="0" y1="8" x2="80" y2="8" stroke="#553020" stroke-width="0.3" opacity="0.3"/>
+      </pattern>
+
+      <!-- ═══ FILTERS ═══ -->
+      <filter id="blur2">  <feGaussianBlur stdDeviation="2"/></filter>
+      <filter id="blur4">  <feGaussianBlur stdDeviation="4"/></filter>
+      <filter id="blur10"> <feGaussianBlur stdDeviation="10"/></filter>
+      <filter id="blur20"> <feGaussianBlur stdDeviation="20"/></filter>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="10" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glowStrong">
+        <feGaussianBlur stdDeviation="22" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="warmGrade">
+        <feColorMatrix type="matrix"
+          values="1.08 0.0  0.0  0  0.02
+                  0.0  0.94 0.0  0  0.00
+                  0.0  0.0  0.82 0  0.00
+                  0.0  0.0  0.0  1  0.0"/>
+      </filter>
+
+      <!-- ═══ CLIP PATHS ═══ -->
+      <!-- Arched window clip -->
+      <clipPath id="windowClip">
+        <path d="M120,195 Q120,110 220,110 Q320,110 320,195 L320,480 L120,480 Z"/>
+      </clipPath>
+      <!-- Fireplace arch clip -->
+      <clipPath id="fireplaceClip">
+        <path d="M730,900 Q730,840 820,840 Q910,840 910,900 L910,1120 L730,1120 Z"/>
+      </clipPath>
+    </defs>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 0 — CEILING (deep dark)
+    ════════════════════════════════════════════════════ -->
+    <rect x="0" y="0" width="1080" height="260" fill="url(#ceilGrad)"/>
+    <!-- Ceiling beam (horizontal) -->
+    <rect x="0" y="210" width="1080" height="32" rx="0" fill="#120e08" opacity="0.95"/>
+    <!-- Ceiling plank texture -->
+    <rect x="0" y="0" width="1080" height="210" fill="#0a0806" opacity="0.9"/>
+    <line x1="0" y1="60"  x2="1080" y2="60"  stroke="#0e0a06" stroke-width="1.5" opacity="0.5"/>
+    <line x1="0" y1="120" x2="1080" y2="120" stroke="#0e0a06" stroke-width="1.5" opacity="0.5"/>
+    <line x1="0" y1="180" x2="1080" y2="180" stroke="#0e0a06" stroke-width="1.5" opacity="0.5"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 1 — BACK WALL (stone texture)
+    ════════════════════════════════════════════════════ -->
+    <rect x="0" y="242" width="1080" height="1000" fill="url(#wallGrad)"/>
+    <!-- Stone block pattern overlay -->
+    <rect x="0" y="242" width="1080" height="1000" fill="url(#stoneWall)" opacity="0.6"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 2 — ARCHITECTURAL DETAILS
+         (window, fireplace, timber beams)
+    ════════════════════════════════════════════════════ -->
+
+    <!-- Left wall vertical timber posts -->
+    <rect x="0"   y="242" width="20"  height="1000" fill="#120d07" opacity="0.9"/>
+    <rect x="40"  y="242" width="12"  height="1000" fill="#1a1008" opacity="0.7"/>
+    <rect x="440" y="242" width="16"  height="600"  fill="#1a1008" opacity="0.6"/>
+    <rect x="1058" y="242" width="22" height="1000" fill="#120d07" opacity="0.9"/>
+    <!-- Horizontal timber beam above floor line -->
+    <rect x="0" y="600" width="1080" height="22" fill="#150f07" opacity="0.85"/>
+    <rect x="0" y="600" width="1080" height="6"  fill="#201508" opacity="0.5"/>
+    <!-- Diagonal brace (left corner) -->
+    <polygon points="0,620 180,760 180,782 0,642" fill="#120d06" opacity="0.8"/>
+
+    <!-- ARCHED WINDOW (left wall, moonlight) -->
+    <!-- Window stone surround -->
+    <path d="M110,185 Q110,100 220,100 Q330,100 330,185 L330,490 L110,490 Z"
+          fill="#28190e" stroke="#0e0906" stroke-width="8"/>
+    <!-- Window glass (moonlight glow) -->
+    <path d="M120,195 Q120,110 220,110 Q320,110 320,195 L320,480 L120,480 Z"
+          fill="url(#moonRay)"/>
+    <!-- Window cross-bars -->
+    <line x1="220" y1="110" x2="220" y2="480" stroke="#28190e" stroke-width="10"/>
+    <line x1="120" y1="310" x2="320" y2="310" stroke="#28190e" stroke-width="10"/>
+    <!-- Window sill -->
+    <rect x="100" y="480" width="240" height="22" rx="4" fill="#2e1e10"/>
+    <!-- Moonlight shaft cast on floor -->
+    <polygon points="110,490 330,490 580,1920 -120,1920"
+             fill="url(#moonRay)" opacity="0.14" filter="url(#blur4)"/>
+    <!-- Moon glow outside window (blurred circle) -->
+    <circle cx="220" cy="80" r="55" fill="#c8d8f5" opacity="0.5" filter="url(#blur10)"/>
+
+    <!-- FIREPLACE (right side of wall) -->
+    <!-- Fireplace stone mantle outer -->
+    <path d="M700,870 Q700,800 820,800 Q940,800 940,870 L940,1130 L700,1130 Z"
+          fill="#2a1a0c" stroke="#150e07" stroke-width="6"/>
+    <!-- Fireplace mantle shelf slab -->
+    <rect x="680" y="790" width="280" height="28" rx="4" fill="#3a2415"/>
+    <rect x="664" y="770" width="312" height="24" rx="3" fill="#44301a"/>
+    <!-- Fireplace firebox (dark interior arch) -->
+    <path d="M720,878 Q720,840 820,840 Q920,840 920,878 L920,1120 L720,1120 Z"
+          fill="#0a0704"/>
+    <!-- Ember / fire glow area -->
+    <ellipse cx="820" cy="1095" rx="130" ry="28" fill="url(#emberGlow)" filter="url(#blur4)"/>
+    <!-- Flame 1 (main) -->
+    <path id="flame1"
+          d="M760,1095 Q768,1040 785,1055 Q793,1010 820,1030 Q840,990 848,1048 Q865,1025 872,1080 Q855,1058 843,1085 Q820,1050 800,1082 Q778,1058 760,1095Z"
+          fill="#ff7700" opacity="0.92" filter="url(#glow)"/>
+    <!-- Flame 2 (inner bright) -->
+    <path id="flame2"
+          d="M790,1092 Q796,1052 810,1065 Q820,1035 832,1058 Q845,1038 848,1078 Q835,1062 820,1080 Q806,1065 790,1092Z"
+          fill="#ffdd00" opacity="0.85"/>
+    <!-- Ember sparks -->
+    <circle cx="790" cy="1060" r="3" fill="#ff9900" opacity="0.8" filter="url(#glow)"/>
+    <circle cx="840" cy="1045" r="2" fill="#ffcc00" opacity="0.9" filter="url(#glow)"/>
+    <circle cx="815" cy="1030" r="2.5" fill="#ff6600" opacity="0.7" filter="url(#glow)"/>
+    <!-- Orange fire ambient room light -->
+    <rect x="0" y="600" width="1080" height="1320" fill="url(#fireAmbient)"/>
+
+    <!-- DECORATIVE STONEWORK — Keystone arch above window -->
+    <path d="M110,195 Q110,100 220,100 Q330,100 330,195"
+          fill="none" stroke="#2e1e0e" stroke-width="20" opacity="0.4"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 3 — FLOOR
+    ════════════════════════════════════════════════════ -->
+    <!-- Floor base polygon (perspective trapezoid) VP = (540, 1150) -->
+    <polygon points="0,1920 1080,1920 870,1242 210,1242"
+             fill="url(#marbleFloor)"/>
+    <!-- Wood plank texture -->
+    <polygon points="0,1920 1080,1920 870,1242 210,1242"
+             fill="url(#woodFloor)"
+             opacity="0.65"/>
+    <!-- Perspective plank seams (horizontal) -->
+    <line x1="0" y1="1600" x2="1080" y2="1600" stroke="#1a0d05" stroke-width="3" opacity="0.45"/>
+    <line x1="0" y1="1420" x2="1080" y2="1420" stroke="#1a0d05" stroke-width="2.5" opacity="0.4"/>
+    <line x1="0" y1="1310" x2="1080" y2="1310" stroke="#1a0d05" stroke-width="2" opacity="0.3"/>
+    <!-- Longitudinal dividers converging to VP(540,1242) -->
+    <line x1="540" y1="1242" x2="0"    y2="1920" stroke="#120a04" stroke-width="2.5" opacity="0.4"/>
+    <line x1="540" y1="1242" x2="270"  y2="1920" stroke="#120a04" stroke-width="2"   opacity="0.3"/>
+    <line x1="540" y1="1242" x2="540"  y2="1920" stroke="#120a04" stroke-width="2"   opacity="0.3"/>
+    <line x1="540" y1="1242" x2="810"  y2="1920" stroke="#120a04" stroke-width="2"   opacity="0.3"/>
+    <line x1="540" y1="1242" x2="1080" y2="1920" stroke="#120a04" stroke-width="2.5" opacity="0.4"/>
+    <!-- Floor-wall seam (skirting) -->
+    <line x1="0" y1="1242" x2="1080" y2="1242" stroke="#0e0a06" stroke-width="8" opacity="0.7"/>
+    <rect x="0" y="1230" width="1080" height="16" rx="0" fill="#180f07" opacity="0.8"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 3B — HANGING LANTERN (center ceiling)
+    ════════════════════════════════════════════════════ -->
+    <!-- Lantern chain -->
+    <line x1="540" y1="0" x2="540" y2="195" stroke="#5a4210" stroke-width="5" opacity="0.9"/>
+    <!-- Small chain links -->
+    <ellipse cx="540" cy="60"  rx="5" ry="3" fill="none" stroke="#6b5218" stroke-width="2.5"/>
+    <ellipse cx="540" cy="90"  rx="5" ry="3" fill="none" stroke="#6b5218" stroke-width="2.5"/>
+    <ellipse cx="540" cy="120" rx="5" ry="3" fill="none" stroke="#6b5218" stroke-width="2.5"/>
+    <ellipse cx="540" cy="150" rx="5" ry="3" fill="none" stroke="#6b5218" stroke-width="2.5"/>
+    <!-- Lantern cap top -->
+    <polygon points="510,194 570,194 560,212 520,212" fill="#6b5210" stroke="#3a2e08" stroke-width="3"/>
+    <!-- Lantern body frame -->
+    <rect x="514" y="212" width="52" height="80" rx="6" fill="#8b6914" stroke="#5a4209" stroke-width="4"/>
+    <!-- Lantern glass panels (glowing warm) -->
+    <rect x="520" y="218" width="16" height="68" rx="3" fill="#ffe87a" opacity="0.88" filter="url(#blur2)"/>
+    <rect x="540" y="218" width="12" height="68" rx="3" fill="#ffdd55" opacity="0.75" filter="url(#blur2)"/>
+    <rect x="556" y="218" width="4"  height="68" rx="2" fill="#ff9922" opacity="0.6" filter="url(#blur2)"/>
+    <!-- Lantern bottom cap -->
+    <polygon points="514,292 566,292 572,308 508,308" fill="#7a5c14" stroke="#3a2e08" stroke-width="3"/>
+    <!-- Lantern warm glow (halo) -->
+    <ellipse cx="540" cy="250" rx="80" ry="60" fill="#ffe87a" opacity="0.3" filter="url(#blur20)"/>
+    <!-- Warm light cone downward -->
+    <polygon points="420,308 660,308 940,1920 140,1920"
+             fill="url(#lanternCone)" opacity="0.4"/>
+    <!-- Caustic light pool on floor (subtle glow) -->
+    <ellipse cx="540" cy="1800" rx="280" ry="55"
+             fill="#ff9500" opacity="0.1" filter="url(#blur20)"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 3C — BOOKSHELVES (left wall)
+    ════════════════════════════════════════════════════ -->
+    <!-- Shelf 1 (top, y~470) -->
+    <rect x="52" y="474" width="310" height="18" rx="3" fill="#3d2210" stroke="#2a1508" stroke-width="2"/>
+    <rect x="52" y="490" width="14"  height="30" fill="#2a1508"/>
+    <rect x="348" y="490" width="14" height="30" fill="#2a1508"/>
+    <!-- Books on shelf 1 -->
+    <rect x="66"  y="420" width="32" height="54" rx="2" fill="#8b2020" stroke="#5a1010" stroke-width="1.5"/>
+    <rect x="66"  y="420" width="6"  height="54" fill="#6b1818"/>
+    <rect x="102" y="430" width="28" height="44" rx="2" fill="#1a4a2a" stroke="#0e3018" stroke-width="1.5"/>
+    <rect x="102" y="430" width="5"  height="44" fill="#133820"/>
+    <rect x="134" y="435" width="26" height="39" rx="2" fill="#3a2a7a" stroke="#26198a" stroke-width="1.5"
+          transform="rotate(-4,147,455)"/>
+    <rect x="168" y="428" width="30" height="46" rx="2" fill="#7a4a10" stroke="#503008" stroke-width="1.5"/>
+    <rect x="168" y="428" width="5"  height="46" fill="#5a3008"/>
+    <!-- Potion bottle on shelf 1 -->
+    <rect x="210" y="435" width="22" height="28" rx="8" fill="#1a3a1a" opacity="0.92"/>
+    <ellipse cx="221" cy="435" rx="8" ry="5" fill="#1e3e1e"/>
+    <rect x="217" y="420" width="8"  height="16" rx="3" fill="#2e5e2e"/>
+    <ellipse cx="221" cy="453" rx="9" ry="10" fill="#00ff88" opacity="0.35" filter="url(#glow)"/>
+    <!-- Skull decorative item -->
+    <ellipse cx="270" cy="445" rx="18" ry="16" fill="#d4c8b4" stroke="#8a7c6a" stroke-width="2"/>
+    <ellipse cx="262" cy="449" rx="5"  ry="4"  fill="#1a1208"/>
+    <ellipse cx="278" cy="449" rx="5"  ry="4"  fill="#1a1208"/>
+    <path d="M258,462 Q270,468 282,462" stroke="#8a7c6a" stroke-width="2" fill="none"/>
+
+    <!-- Shelf 2 (mid, y~670) -->
+    <rect x="52" y="668" width="310" height="18" rx="3" fill="#3d2210" stroke="#2a1508" stroke-width="2"/>
+    <rect x="52" y="686" width="14"  height="28" fill="#2a1508"/>
+    <rect x="348" y="686" width="14" height="28" fill="#2a1508"/>
+    <!-- Tools on shelf 2 -->
+    <!-- Hammer -->
+    <rect x="72"  y="630" width="10" height="38" rx="2" fill="#6b4a1a" stroke="#3a2008" stroke-width="1.5"/>
+    <rect x="62"  y="624" width="30" height="14" rx="3" fill="#5a5a5a" stroke="#2a2a2a" stroke-width="1.5"/>
+    <!-- Cobbler's last (shoe-form tool) -->
+    <path d="M110,634 Q110,618 130,616 Q155,614 165,630 Q168,642 160,650 L110,650 Z"
+          fill="#8b5e2a" stroke="#5a3c18" stroke-width="1.5"/>
+    <rect x="115" y="650" width="6"  height="18" rx="2" fill="#6b4518"/>
+    <!-- Awl / needle tool -->
+    <line x1="195" y1="620" x2="195" y2="665" stroke="#6b5a2a" stroke-width="5" stroke-linecap="round"/>
+    <polygon points="192,665 198,665 195,682" fill="#aaaaaa"/>
+    <!-- Candle on shelf 2 -->
+    <rect x="230" y="635" width="16" height="30" rx="2" fill="#f5e6c8" stroke="#c8b490" stroke-width="1.5"/>
+    <ellipse cx="238" cy="634" rx="8" ry="5" fill="#f5e6c8"/>
+    <!-- Candle wick -->
+    <line x1="238" y1="634" x2="238" y2="620" stroke="#2a1a0a" stroke-width="2"/>
+    <!-- Candle flame -->
+    <path id="candle-flame"
+          d="M235,618 Q232,606 238,600 Q244,606 241,618 Z"
+          fill="#ff9900" opacity="0.9" filter="url(#glow)"/>
+    <ellipse cx="238" cy="604" rx="4" ry="6" fill="#ffe066" opacity="0.7" filter="url(#glow)"/>
+    <!-- Rope coil on shelf -->
+    <ellipse cx="296" cy="650" rx="22" ry="14" fill="none"
+             stroke="#8b6a2a" stroke-width="6"/>
+    <ellipse cx="296" cy="650" rx="10" ry="6" fill="none"
+             stroke="#8b6a2a" stroke-width="4"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 3D — WORKBENCH / TABLE (center-bottom)
+    ════════════════════════════════════════════════════ -->
+    <!-- Table top (perspective trapezoid) -->
+    <polygon points="80,1500 1000,1500 960,1428 120,1428"
+             fill="url(#tableTopGrad)"/>
+    <!-- Table front face -->
+    <rect x="80" y="1500" width="920" height="45" fill="url(#tableSideGrad)"/>
+    <!-- Table left leg -->
+    <rect x="100" y="1545" width="38" height="280" rx="4" fill="#281408" stroke="#180a04" stroke-width="2"/>
+    <!-- Table right leg -->
+    <rect x="942" y="1545" width="38" height="280" rx="4" fill="#281408" stroke="#180a04" stroke-width="2"/>
+    <!-- Table cross-brace -->
+    <rect x="100" y="1700" width="880" height="16" rx="3" fill="#200e04" opacity="0.9"/>
+    <!-- Wood grain on table top -->
+    <line x1="200" y1="1428" x2="180" y2="1500" stroke="#5a3015" stroke-width="1.2" opacity="0.35"/>
+    <line x1="380" y1="1428" x2="360" y2="1500" stroke="#5a3015" stroke-width="1.2" opacity="0.35"/>
+    <line x1="560" y1="1428" x2="540" y2="1500" stroke="#5a3015" stroke-width="1.2" opacity="0.35"/>
+    <line x1="740" y1="1428" x2="720" y2="1500" stroke="#5a3015" stroke-width="1.2" opacity="0.35"/>
+    <line x1="880" y1="1428" x2="860" y2="1500" stroke="#5a3015" stroke-width="1" opacity="0.3"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 3E — TABLE PROPS (shoes, tools, gold)
+    ════════════════════════════════════════════════════ -->
+    <!-- Shoe pair on table (LEFT shoe = stolen!) -->
+    <!-- RIGHT shoe (complete, on table) -->
+    <g transform="translate(650, 1400) rotate(-8)">
+      <ellipse cx="0" cy="20" rx="58" ry="13" fill="#1a0e06" opacity="0.6"/>
+      <path d="M-58,10 Q-52,-28 -8,-30 Q22,-32 50,-16 Q60,0 55,10 Z"
+            fill="#78350f" stroke="#3a1a06" stroke-width="2.5"/>
+      <path d="M-58,10 Q-58,-6 -32,-10 Q-10,-13 10,-6 Q-10,5 -32,8 Z"
+            fill="#8b4515"/>
+      <circle cx="-14" cy="-4"  r="4" fill="#0a0603"/>
+      <circle cx="8"   cy="-7"  r="4" fill="#0a0603"/>
+      <circle cx="28"  cy="-7"  r="4" fill="#0a0603"/>
+      <path d="M-14,-4 Q0,-14 8,-7 Q18,-14 28,-7" stroke="#f5e6c8" stroke-width="2" fill="none"/>
+      <ellipse cx="40" cy="5" rx="12" ry="4" fill="#6b2808" opacity="0.6"/>
+    </g>
+    <!-- Cobbler's tools on table -->
+    <rect x="420" y="1400" width="8"  height="28" rx="2" fill="#7b5a1a" stroke="#4a3010" stroke-width="1.5"/>
+    <rect x="414" y="1394" width="20" height="10" rx="2" fill="#606060" stroke="#2a2a2a" stroke-width="1.5"/>
+    <!-- Needle & thread (curved line) -->
+    <path d="M460,1398 Q475,1388 490,1395" stroke="#f5e6c8" stroke-width="1.5" fill="none"/>
+    <circle cx="490" cy="1395" r="3" fill="#888888"/>
+    <!-- Small coin stack on table (3 coins) -->
+    <ellipse cx="800" cy="1420" rx="20" ry="8" fill="#d4a017" stroke="#8b6a0a" stroke-width="1.5"/>
+    <ellipse cx="800" cy="1416" rx="20" ry="8" fill="#d4a017" stroke="#8b6a0a" stroke-width="1.5"/>
+    <ellipse cx="800" cy="1412" rx="20" ry="8" fill="#f5c430" stroke="#8b6a0a" stroke-width="1.5"/>
+    <ellipse cx="800" cy="1412" rx="14" ry="4" fill="#f7d950" opacity="0.5"/>
+    <!-- Leather piece on table -->
+    <path d="M220,1415 Q260,1408 310,1418 Q320,1430 300,1440 Q255,1448 215,1435 Q205,1428 220,1415Z"
+          fill="#5a3010" stroke="#3a2008" stroke-width="2" opacity="0.85"/>
+    <!-- Scissors -->
+    <line x1="350" y1="1415" x2="380" y2="1445" stroke="#8a8a8a" stroke-width="4" stroke-linecap="round"/>
+    <line x1="380" y1="1415" x2="350" y2="1445" stroke="#8a8a8a" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="365" cy="1430" r="6" fill="none" stroke="#6a6a6a" stroke-width="3"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 4 — ATMOSPHERE
+    ════════════════════════════════════════════════════ -->
+    <!-- Light shaft from window hitting the air (god ray) -->
+    <polygon points="110,480 330,480 440,1242 20,1242"
+             fill="url(#moonRay)" opacity="0.07" filter="url(#blur10)"/>
+    <!-- Dust motes in lantern light beam -->
+    <circle class="dust-mote" cx="488" cy="420" r="2.5" fill="#e8d8b0" opacity="0.7"/>
+    <circle class="dust-mote" cx="556" cy="560" r="2"   fill="#e8d8b0" opacity="0.55"/>
+    <circle class="dust-mote" cx="520" cy="720" r="3"   fill="#e8d8b0" opacity="0.45"/>
+    <circle class="dust-mote" cx="570" cy="900" r="2"   fill="#e8d8b0" opacity="0.5"/>
+    <circle class="dust-mote" cx="500" cy="1080" r="2.5" fill="#e8d8b0" opacity="0.4"/>
+    <circle class="dust-mote" cx="542" cy="1200" r="1.5" fill="#e8d8b0" opacity="0.35"/>
+    <circle class="dust-mote" cx="510" cy="340"  r="2"   fill="#e8d8b0" opacity="0.6"/>
+    <circle class="dust-mote" cx="580" cy="280"  r="1.5" fill="#e8d8b0" opacity="0.5"/>
+    <!-- Smoke wisps from fireplace (blurred arcs) -->
+    <path d="M810,830 Q830,790 815,760 Q800,730 820,700"
+          stroke="#888880" stroke-width="6" fill="none" opacity="0.18" filter="url(#blur4)"/>
+    <path d="M825,820 Q840,775 830,750"
+          stroke="#888880" stroke-width="4" fill="none" opacity="0.12" filter="url(#blur4)"/>
+    <!-- Bottom fog layer -->
+    <rect x="0" y="1750" width="1080" height="170"
+          fill="white" opacity="0.04" filter="url(#blur20)"/>
+
+    <!-- ═══════════════════════════════════════════════
+         LAYER 5 — VIGNETTE (always last!)
+    ════════════════════════════════════════════════════ -->
+    <rect x="0" y="0" width="1080" height="1920" fill="url(#bgVignette)" pointer-events="none"/>
+    <!-- Extra dark top (cinematic letterbox feel) -->
+    <rect x="0" y="0" width="1080" height="80" fill="#000" opacity="0.6"/>
+    <!-- Extra dark bottom -->
+    <rect x="0" y="1840" width="1080" height="80" fill="#000" opacity="0.5"/>
+  </svg>
+
+  <!-- ============================================================
+       CHARACTER LAYER — Thief descending on rope
+  ============================================================ -->
+  <svg class="char-layer" viewBox="0 0 1080 1920" style="z-index:10;">
+    <!-- Light shaft / spotbeam on character area -->
+    <polygon points="380,0 700,0 800,1300 280,1300"
+             fill="rgba(255,230,180,0.08)" filter="url(#blur10)"/>
+
+    <!-- Rope (dashed, brown) -->
+    <path id="thief-rope" d="M 540 0 L 540 720"
+          stroke="#78553a" stroke-width="8" stroke-dasharray="14 6"/>
+
+    <!-- THIEF CHARACTER — same rig as scene.html scene 1 -->
+    <g id="thief-dangler" transform="translate(540, 720)">
+      <!-- Ground shadow ellipse -->
+      <ellipse cx="0" cy="890" rx="90" ry="22" class="shadow-ground" opacity="0.55"/>
+
+      <!-- Hat / hair bits -->
+      <circle cx="-16" cy="-20" r="14" class="stranger-cloak"/>
+      <circle cx="16"  cy="-45" r="14" class="stranger-cloak"/>
+
+      <g id="thief-body-group">
+        <!-- Body (cloak) -->
+        <path d="M -45 -10 C -55 80, -70 140, -60 170 C -20 185, 20 185, 60 170 C 70 140, 55 80, 45 -10 Z"
+              class="stranger-cloak"/>
+        <!-- Scarf collar -->
+        <path d="M -42 0 Q 0 15 42 0 Q 30 35 0 35 Q -30 35 -42 0 Z"
+              class="stranger-scarf"/>
+        <!-- Scarf tail -->
+        <path id="scarf-tail"
+              d="M 15 28 Q 30 70 25 110"
+              stroke="#15803d" stroke-width="12" stroke-linecap="round" fill="none"/>
+
+        <!-- HEAD (hierarchically parented with body) -->
+        <g id="thief-head-group" transform="translate(0, -60)">
+          <circle cx="0" cy="0" r="56" class="head-white"/>
+          <!-- Hat brim -->
+          <path d="M -42 -12 C -20 -24, 20 -24, 42 -12 C 45 4, 30 14, 0 10 C -30 14, -45 4, -42 -12 Z"
+                fill="#0f172a"/>
+          <!-- Eyes (mischievous) -->
+          <ellipse cx="-18" cy="-5" rx="7" ry="5" fill="#facc15"/>
+          <circle cx="-16"  cy="-5" r="2.5" fill="#000"/>
+          <ellipse cx="18"  cy="-5" rx="7" ry="5" fill="#facc15"/>
+          <circle cx="20"   cy="-5" r="2.5" fill="#000"/>
+          <!-- Smirk mouth -->
+          <path d="M -12 25 Q 2 34 18 22" class="stroke-main" fill="none"/>
+        </g>
+
+        <!-- Left arm reaching down with shoe -->
+        <g id="thief-arm" transform="translate(-40, 60)">
+          <path d="M 0 0 Q -45 70 -70 140"
+                stroke="#1e293b" stroke-width="18" stroke-linecap="round" fill="none"/>
+          <circle cx="-70" cy="140" r="15" fill="#1e293b"/>
+          <!-- Stolen LEFT shoe in hand -->
+          <g id="snatched-shoe" transform="translate(-85, 140) rotate(-25)">
+            <path d="M 0 0 C 25 -15, 60 -10, 75 10 C 65 30, 25 28, -5 20 C -15 15, -15 8, 0 0 Z"
+                  class="boot-leather"/>
+            <path d="M 0 0 C 10 -8, 20 -8, 25 -2" stroke="#5a2808" stroke-width="2" fill="none"/>
+          </g>
+        </g>
+
+        <!-- Right arm gripping rope -->
+        <g id="thief-arm-right" transform="translate(44, 20)">
+          <path d="M 0 0 Q 15 -45 0 -80"
+                stroke="#1e293b" stroke-width="18" stroke-linecap="round" fill="none"/>
+          <circle cx="0" cy="-80" r="13" fill="#1e293b"/>
+        </g>
+
+        <!-- Legs (dangling) -->
+        <line x1="-22" y1="185" x2="-35" y2="310" class="stroke-main" stroke-width="14"/>
+        <line x1=" 22" y1="185" x2=" 35" y2="310" class="stroke-main" stroke-width="14"/>
+        <!-- Feet -->
+        <path d="M-35,310 Q-50,330 -55,310" class="boot-leather" stroke-width="5"/>
+        <path d="M 35,310 Q 50,330  55,310" class="boot-leather" stroke-width="5"/>
+      </g>
+    </g>
+  </svg>
+
+  <!-- ============================================================
+       CAPTION / SUBTITLE BOX
+  ============================================================ -->
+  <div id="caption-box">
+    <div class="caption-phrase" id="caption-line">
+      <!-- Words injected by JS -->
+    </div>
+  </div>
+
+  </div><!-- end camera-rig -->
+
+  <!-- Channel badge and vignette sit outside camera-rig to stay fixed -->
+  <div class="channel-badge">COMICRON • THE LEFT SHOE MYSTERY</div>
+  <div class="vignette"></div>
+</div><!-- end viewport -->
+
+<script>
+// ═══════════════════════════════════════════
+// SUBTITLE CHUNKS (first 5 seconds of story)
+// ═══════════════════════════════════════════
+const SUBTITLE_CHUNKS = [
+  {
+    phrase: "EVERY NIGHT FOR A MONTH",
+    words: [
+      { word: "EVERY",  start: 0.00, end: 0.44 },
+      { word: "NIGHT",  start: 0.44, end: 0.80 },
+      { word: "FOR",    start: 0.80, end: 1.00 },
+      { word: "A",      start: 1.00, end: 1.12 },
+      { word: "MONTH",  start: 1.12, end: 1.60 }
+    ]
+  },
+  {
+    phrase: "A THIEF CREPT INTO THE SHOP",
+    words: [
+      { word: "A",      start: 1.60, end: 1.75 },
+      { word: "THIEF",  start: 1.75, end: 2.10 },
+      { word: "CREPT",  start: 2.10, end: 2.45 },
+      { word: "INTO",   start: 2.45, end: 2.72 },
+      { word: "THE",    start: 2.72, end: 2.88 },
+      { word: "SHOP",   start: 2.88, end: 3.30 }
+    ]
+  },
+  {
+    phrase: "AND STOLE ONLY THE LEFT SHOE",
+    words: [
+      { word: "AND",    start: 3.30, end: 3.50 },
+      { word: "STOLE",  start: 3.50, end: 3.85 },
+      { word: "ONLY",   start: 3.85, end: 4.15 },
+      { word: "THE",    start: 4.15, end: 4.28 },
+      { word: "LEFT",   start: 4.28, end: 4.60 },
+      { word: "SHOE",   start: 4.60, end: 5.00 }
+    ]
+  }
+];
+
+// Build word DOM elements
+const captionLine = document.getElementById('caption-line');
+
+function buildChunkDOM(chunkIdx) {
+  captionLine.innerHTML = '';
+  if (chunkIdx < 0 || chunkIdx >= SUBTITLE_CHUNKS.length) return;
+  SUBTITLE_CHUNKS[chunkIdx].words.forEach((w, i) => {
+    const span = document.createElement('span');
+    span.className = 'word-span';
+    span.id = `w${chunkIdx}_${i}`;
+    span.textContent = w.word;
+    captionLine.appendChild(span);
+  });
+}
+
+// Find active chunk for time t
+function getActiveChunk(t) {
+  for (let i = 0; i < SUBTITLE_CHUNKS.length; i++) {
+    const ch = SUBTITLE_CHUNKS[i];
+    const first = ch.words[0].start;
+    const last  = ch.words[ch.words.length - 1].end;
+    if (t >= first && t < last + 0.3) return i;
+  }
+  return -1;
+}
+
+// Update subtitle highlights at time t
+let currentChunk = -1;
+function updateSubtitles(t) {
+  const activeChunk = getActiveChunk(t);
+  if (activeChunk !== currentChunk) {
+    currentChunk = activeChunk;
+    buildChunkDOM(currentChunk);
+  }
+  if (currentChunk < 0) return;
+  SUBTITLE_CHUNKS[currentChunk].words.forEach((w, i) => {
+    const el = document.getElementById(`w${currentChunk}_${i}`);
+    if (!el) return;
+    if (t >= w.start && t < w.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// GSAP MASTER TIMELINE (virtual clock)
+// ═══════════════════════════════════════════
+const masterTimeline = gsap.timeline({ paused: true });
+
+// Camera drift — slow push-in + subtle pan (mandatory "Camera Kabhi Rukta Nahi")
+masterTimeline.to('#cam-main', {
+  x: 14, y: -7, scale: 1.038,
+  duration: 5, ease: 'sine.inOut'
+}, 0);
+
+// Thief descends from y=720 to y=820 over 5s
+masterTimeline.to('#thief-dangler', {
+  y: '+=100',
+  duration: 5, ease: 'power1.inOut'
+}, 0);
+
+// Thief body sway (organic pendulum)
+masterTimeline.to('#thief-body-group', {
+  rotation: 6, transformOrigin: '50% 0%',
+  duration: 1.2, ease: 'sine.inOut',
+  yoyo: true, repeat: 4
+}, 0);
+
+// Scarf tail flutter
+masterTimeline.to('#scarf-tail', {
+  attr: { d: 'M 15 28 Q 45 65 38 110' },
+  duration: 0.9, ease: 'sine.inOut',
+  yoyo: true, repeat: 5
+}, 0);
+
+// Head slight tilt (looking down at shoe)
+masterTimeline.to('#thief-head-group', {
+  rotation: -8, transformOrigin: '50% 50%',
+  duration: 1.5, ease: 'power2.inOut',
+  yoyo: true, repeat: 2
+}, 0.3);
+
+// Arm swing (holding shoe)
+masterTimeline.to('#thief-arm', {
+  rotation: -12, transformOrigin: '0% 0%',
+  duration: 1.0, ease: 'sine.inOut',
+  yoyo: true, repeat: 4
+}, 0.2);
+
+// Flame flicker (fire 1)
+masterTimeline.to('#flame1', {
+  scaleY: 0.84, scaleX: 1.1, transformOrigin: '50% 100%',
+  duration: 0.22, ease: 'power1.inOut',
+  yoyo: true, repeat: 20
+}, 0);
+// Flame flicker (fire 2 — offset phase)
+masterTimeline.to('#flame2', {
+  scaleY: 0.78, scaleX: 1.12, transformOrigin: '50% 100%',
+  duration: 0.18, ease: 'power1.inOut',
+  yoyo: true, repeat: 25
+}, 0.08);
+
+// Candle flame flicker
+masterTimeline.to('#candle-flame', {
+  scaleX: 1.3, scaleY: 0.8, transformOrigin: '50% 100%',
+  duration: 0.15, ease: 'power1.inOut',
+  yoyo: true, repeat: 30
+}, 0.05);
+
+// Dust motes float gently upward in lantern beam
+gsap.to('.dust-mote', {
+  y: -60, opacity: 0,
+  duration: 3.2, ease: 'none',
+  stagger: { each: 0.4, repeat: -1 },
+});
+
+// Lantern gentle sway
+masterTimeline.to('#cam-main svg:first-child #lantern-g', {
+  rotation: 3, transformOrigin: '50% 0%',
+  duration: 2.6, ease: 'sine.inOut',
+  yoyo: true, repeat: 1
+}, 0);
+
+// ═══════════════════════════════════════════
+// VIRTUAL CLOCK — Deterministic Render Contract
+// window.seekToTime(t) → renders frame at t
+// ═══════════════════════════════════════════
+let currentT = 0;
+
+window.seekToTime = function(t) {
+  currentT = t;
+  masterTimeline.seek(t);
+  updateSubtitles(t);
+};
+
+// Live playback mode (browser preview)
+window.PLAYBACK_RATE = 1.0;
+let startWallTime = null;
+let animFrame = null;
+
+function playbackLoop(now) {
+  if (!startWallTime) startWallTime = now;
+  const elapsed = (now - startWallTime) / 1000;
+  const t = Math.min(elapsed * window.PLAYBACK_RATE, 5.0);
+  window.seekToTime(t);
+  if (t < 5.0) {
+    animFrame = requestAnimationFrame(playbackLoop);
+  }
+}
+
+// Auto-start playback when page loads (browser preview mode)
+window.addEventListener('load', () => {
+  buildChunkDOM(0);
+  requestAnimationFrame(playbackLoop);
+});
+
+// Expose duration for render scripts
+window.SCENE_DURATION = 5.0;
+window.FPS = 30;
+</script>
+</body>
+</html>
+
